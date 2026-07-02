@@ -77,31 +77,15 @@
         }
 
         function getDiffTotal(row) {
-            if (row.diffTotal !== undefined && row.diffTotal !== null && row.diffTotal !== '') {
-                var n = Number(row.diffTotal);
-                if (n > 0) {
-                    return '<span class="badge badge-error">' + n + '</span>';
-                }
-                return '<span class="badge badge-success">0</span>';
-            }
-            var content = parseContent(row.content);
-            if (!content) {
-                return '-';
-            }
-            var total = content.diffTotal || 0;
-            if (total > 0) {
-                return '<span class="badge badge-error">' + total + '</span>';
+            var n = Number(row.diffTotal) || 0;
+            if (n > 0) {
+                return '<span class="badge badge-error">' + n + '</span>';
             }
             return '<span class="badge badge-success">0</span>';
         }
 
         function getCorrectedTotal(row) {
-            var total = row.fixedTotal;
-            if (total === undefined || total === null) {
-                var content = parseContent(row.content);
-                total = content ? content.correctedTotal : 0;
-            }
-            total = Number(total) || 0;
+            var total = Number(row.fixedTotal) || 0;
             if (total > 0) {
                 return '<span class="badge badge-success">' + total + '</span>';
             }
@@ -112,30 +96,13 @@
             if (row.type !== 'rowData') {
                 return '<span class="text-gray-400">-</span>';
             }
-            var sourceTotal = row.sourceTotal;
-            var targetTotal = row.targetTotal;
-            if (sourceTotal === undefined && targetTotal === undefined) {
-                var content = parseContent(row.content);
-                if (content) {
-                    sourceTotal = content.sourceTotal;
-                    targetTotal = content.targetTotal;
-                }
-            }
-            sourceTotal = (sourceTotal === undefined || sourceTotal === null) ? '-' : sourceTotal;
-            targetTotal = (targetTotal === undefined || targetTotal === null) ? '-' : targetTotal;
+            var sourceTotal = (row.sourceTotal === undefined || row.sourceTotal === null) ? '-' : row.sourceTotal;
+            var targetTotal = (row.targetTotal === undefined || row.targetTotal === null) ? '-' : row.targetTotal;
             return '<span>源：' + sourceTotal + '</span><br><span>目：' + targetTotal + '</span>';
         }
 
         function parseDiffDetails(details) {
-            if (details == null || details === '') {
-                return [];
-            }
-            try {
-                var parsed = typeof details === 'string' ? JSON.parse(details) : details;
-                return Array.isArray(parsed) ? parsed : [];
-            } catch (e) {
-                return [];
-            }
+            return Array.isArray(details) ? details : [];
         }
 
         function formatDiffValue(value) {
@@ -195,9 +162,15 @@
             return null;
         }
 
+        function formatDiffTypeText(type) {
+            if (!type) {
+                return '-';
+            }
+            return typeTextMap[type] || type;
+        }
+
         function isSchemaDiffItem(item) {
-            var type = (item && (item.type || item.objType)) || '';
-            return type === '表结构' || type === 'tableSchema';
+            return item && item.type === 'tableSchema';
         }
 
         function buildDiffMsgCell(item) {
@@ -240,18 +213,10 @@
             return dialog ? dialog.querySelector('.confirm-btn-confirm') : null;
         }
 
-        function resolveDiffFixedCounts(row, content) {
-            var diff = row.diffTotal;
-            if (diff === undefined || diff === null || diff === '') {
-                diff = content && content.diffTotal != null ? content.diffTotal : 0;
-            }
-            var fixed = row.fixedTotal;
-            if (fixed === undefined || fixed === null || fixed === '') {
-                fixed = content && content.correctedTotal != null ? content.correctedTotal : 0;
-            }
+        function resolveDiffFixedCounts(row) {
             return {
-                diff: Number(diff) || 0,
-                fixed: Number(fixed) || 0
+                diff: Number(row.diffTotal) || 0,
+                fixed: Number(row.fixedTotal) || 0
             };
         }
 
@@ -280,7 +245,7 @@
             var bodyHtml = '';
             data.forEach(function (d) {
                 var msgHtml = buildDiffMsgCell(d);
-                var typeText = d.type || d.objType || '-';
+                var typeText = formatDiffTypeText(d.type);
                 bodyHtml += '<tr>'
                     + '<td>' + escapeHtml(tableNameOuter) + '</td>'
                     + '<td>' + escapeHtml(typeText) + '</td>'
@@ -365,10 +330,10 @@
             }
             var type = row.type || '';
             var data = content.data || [];
-            var tableNameOuter = row.sourceTableName || (content.tableName || '-');
-            var src = row.sourceTotal != null ? row.sourceTotal : (content.sourceTotal != null ? content.sourceTotal : 0);
-            var tgt = row.targetTotal != null ? row.targetTotal : (content.targetTotal != null ? content.targetTotal : 0);
-            var counts = resolveDiffFixedCounts(row, content);
+            var tableNameOuter = row.sourceTableName || '-';
+            var src = row.sourceTotal != null ? row.sourceTotal : 0;
+            var tgt = row.targetTotal != null ? row.targetTotal : 0;
+            var counts = resolveDiffFixedCounts(row);
             var pending = counts.diff > counts.fixed;
 
             closeDiffDetailModal();
