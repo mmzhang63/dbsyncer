@@ -3,7 +3,9 @@
  */
 package org.dbsyncer.sdk.model;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 库级映射配置
@@ -116,6 +118,15 @@ public class DatabaseMapping {
 
     public void setTableMappings(List<TableMapping> tableMappings) {
         this.tableMappings = tableMappings;
+    }
+
+    /**
+     * 按 index 升序返回表映射列表（副本，不修改原列表）。
+     */
+    public List<TableMapping> getSortedTableMappings() {
+        return tableMappings.stream()
+                .sorted(Comparator.comparingInt(TableMapping::getIndex))
+                .collect(Collectors.toList());
     }
 
     /**

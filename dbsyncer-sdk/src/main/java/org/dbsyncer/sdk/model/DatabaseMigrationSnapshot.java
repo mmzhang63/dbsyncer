@@ -6,10 +6,11 @@ package org.dbsyncer.sdk.model;
 import org.dbsyncer.sdk.enums.MigrationStepStatusEnum;
 
 import java.io.Serializable;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 库级迁移快照（按 {@link DatabaseMapping} 索引）。
- * <p>记录目标库/Schema 创建进度，状态见 {@link MigrationStepStatusEnum}。</p>
+ * 库级迁移快照（按 {@link DatabaseMapping#index} 索引）。
+ * <p>库流水线状态见 {@link #status}；其下 {@link #tables} 按表映射 index 记录结构/数据阶段与行级游标。</p>
  *
  * @author wuji
  * @version 1.0.0
@@ -22,8 +23,11 @@ public class DatabaseMigrationSnapshot implements Serializable {
     /** 预留游标，与订正校验快照字段对齐 */
     private long cursor;
 
-    /** {@link MigrationStepStatusEnum#getCode()} */
+    /** 库映射流水线状态，见 {@link MigrationStepStatusEnum} */
     private int status;
+
+    /** 表级快照：key = 表映射 index（库内唯一） */
+    private final ConcurrentHashMap<Integer, DatabaseMigrationTableSnapshot> tables = new ConcurrentHashMap<>();
 
     public DatabaseMigrationSnapshot() {
     }
@@ -60,5 +64,20 @@ public class DatabaseMigrationSnapshot implements Serializable {
 
     public MigrationStepStatusEnum getStatusEnum() {
         return MigrationStepStatusEnum.ofCode(status);
+    }
+
+    public ConcurrentHashMap<Integer, DatabaseMigrationTableSnapshot> getTables() {
+        return tables;
+    }
+
+    public DatabaseMigrationTableSnapshot getTable(int tableIndex) {
+        return tables.get(tableIndex);
+    }
+
+    public DatabaseMigrationTableSnapshot getOrCreateTable(int tableIndex) {
+        return tables.computeIfAbsent(tableIndex, key -> new DatabaseMigrationTableSnapshot(
+                MigrationStepStatusEnum.PENDING.getCode(),
+                1,
+                MigrationStepStatusEnum.PENDING.getCode()));
     }
 }

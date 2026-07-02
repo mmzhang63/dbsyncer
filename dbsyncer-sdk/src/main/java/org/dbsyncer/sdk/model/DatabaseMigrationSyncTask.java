@@ -3,12 +3,15 @@
  */
 package org.dbsyncer.sdk.model;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * 整库迁移任务。
- * <p>进度快照：{@link #databaseSnapshots}（库级）、{@link #tableSnapshots}（表级）；</p>
+ * <p>进度快照：{@link #databaseSnapshots}（库级，内含表级结构/数据/行游标）；</p>
  * <p>列表进度由 {@link DatabaseMigrationProgressComputer#calculateProgressPercent} 计算。</p>
  *
  * @author wuji
@@ -16,6 +19,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * @date 2026-05-22 11:19
  */
 public class DatabaseMigrationSyncTask extends CommonTask {
+
+    /**
+     * TableGroup.mappingId 分隔符：{taskId}#{databaseMappingIndex}
+     */
+    public static final String TABLE_GROUP_MAPPING_ID_SEPARATOR = "@";
 
     /**
      * 库映射列表（源/目标连接器 ID 配置在每条 {@link DatabaseMapping} 上）
@@ -55,14 +63,9 @@ public class DatabaseMigrationSyncTask extends CommonTask {
     private Long endTime;
 
     /**
-     * 库级执行快照（目标库/Schema 创建）
+     * 执行快照：key = 库映射 index，value 含库流水线状态及下属表快照。
      */
     private final ConcurrentHashMap<Integer, DatabaseMigrationSnapshot> databaseSnapshots = new ConcurrentHashMap<>();
-
-    /**
-     * 表级执行快照（结构 + 数据两阶段）
-     */
-    private final ConcurrentHashMap<Integer, DatabaseMigrationTableSnapshot> tableSnapshots = new ConcurrentHashMap<>();
 
     /**
      * 分页读取条数
@@ -85,6 +88,47 @@ public class DatabaseMigrationSyncTask extends CommonTask {
 
     public void setDatabaseMappings(List<DatabaseMapping> databaseMappings) {
         this.databaseMappings = databaseMappings;
+    }
+
+    /**
+     * 按 index 升序返回库映射列表（副本，不修改原列表）。
+     */
+    public List<DatabaseMapping> getSortedDatabaseMappings() {
+        if (databaseMappings == null || databaseMappings.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return databaseMappings.stream()
+                .sorted(Comparator.comparingInt(DatabaseMapping::getIndex))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 库映射对应的 TableGroup 存储键：按「任务 ID + 库映射 index」分库隔离。
+     */
+    public static String toTableGroupMappingId(String taskId, int databaseMappingIndex) {
+        return taskId + TABLE_GROUP_MAPPING_ID_SEPARATOR + databaseMappingIndex;
+    }
+
+    public String toTableGroupMappingId(int databaseMappingIndex) {
+        return toTableGroupMappingId(getId(), databaseMappingIndex);
+    }
+
+    /**
+     * 从 TableGroup.mappingId 解析库映射 index。
+     */
+    public static Integer parseDatabaseMappingIndex(String taskId, String tableGroupMappingId) {
+        if (taskId == null || tableGroupMappingId == null) {
+            return null;
+        }
+        String prefix = taskId + TABLE_GROUP_MAPPING_ID_SEPARATOR;
+        if (!tableGroupMappingId.startsWith(prefix)) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(tableGroupMappingId.substring(prefix.length()).trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     public boolean isEnableCopySchema() {
@@ -153,14 +197,13 @@ public class DatabaseMigrationSyncTask extends CommonTask {
         }
     }
 
-    public ConcurrentHashMap<Integer, DatabaseMigrationTableSnapshot> getTableSnapshots() {
-        return tableSnapshots;
+    public DatabaseMigrationSnapshot getOrCreateDatabaseSnapshot(int mappingIndex) {
+        return databaseSnapshots.computeIfAbsent(mappingIndex, key -> new DatabaseMigrationSnapshot());
     }
 
-    public void putTableSnapshot(Integer index, DatabaseMigrationTableSnapshot snapshot) {
-        if (index != null && snapshot != null) {
-            tableSnapshots.put(index, snapshot);
-        }
+    public DatabaseMigrationTableSnapshot getTableSnapshot(int mappingIndex, int tableIndex) {
+        DatabaseMigrationSnapshot snapshot = databaseSnapshots.get(mappingIndex);
+        return snapshot == null ? null : snapshot.getTable(tableIndex);
     }
 
     public int getReadNum() {
@@ -193,6 +236,5 @@ public class DatabaseMigrationSyncTask extends CommonTask {
     public void resetRunSnapshots() {
         processed = 0;
         databaseSnapshots.clear();
-        tableSnapshots.clear();
     }
 }

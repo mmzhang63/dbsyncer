@@ -80,20 +80,25 @@ public final class DatabaseMigrationProgressComputer {
      * 已完成的表步骤（结构/数据）
      */
     private static long countCompletedTableSteps(DatabaseMigrationSyncTask task, int stepsPerTable) {
-        ConcurrentHashMap<Integer, DatabaseMigrationTableSnapshot> snapshots = task.getTableSnapshots();
+        ConcurrentHashMap<Integer, DatabaseMigrationSnapshot> snapshots = task.getDatabaseSnapshots();
         if (CollectionUtils.isEmpty(snapshots) || stepsPerTable <= 0) {
             return 0;
         }
         long count = 0;
-        for (DatabaseMigrationTableSnapshot snapshot : snapshots.values()) {
-            if (snapshot == null) continue;
-            //开启表结构
-            if (task.isEnableCopySchema() && MigrationStepStatusEnum.isDone(snapshot.getSchemaStatus())) {
-                count++;
+        for (DatabaseMigrationSnapshot dbSnapshot : snapshots.values()) {
+            if (dbSnapshot == null || CollectionUtils.isEmpty(dbSnapshot.getTables())) {
+                continue;
             }
-            //开启数据复制
-            if (task.isEnableCopyData() && MigrationStepStatusEnum.isDone(snapshot.getDataStatus())) {
-                count++;
+            for (DatabaseMigrationTableSnapshot tableSnapshot : dbSnapshot.getTables().values()) {
+                if (tableSnapshot == null) {
+                    continue;
+                }
+                if (task.isEnableCopySchema() && MigrationStepStatusEnum.isDone(tableSnapshot.getSchemaStatus())) {
+                    count++;
+                }
+                if (task.isEnableCopyData() && MigrationStepStatusEnum.isDone(tableSnapshot.getDataStatus())) {
+                    count++;
+                }
             }
         }
         return count;

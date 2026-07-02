@@ -191,7 +191,7 @@ public class DatabaseSyncServiceImpl implements DatabaseSyncService {
                 DatabaseMigrationSyncTask task = (DatabaseMigrationSyncTask) item;
                 DatabaseSyncTaskVO vo = convertTask2Vo(task);
                 if (vo != null) {
-                    List<TableGroup> tableGroups = profileComponent.getTableGroupAll(task.getId());
+                    List<TableGroup> tableGroups = listTaskTableGroups(task);
                     int tableCount = resolveTotalTableCount(task, tableGroups);
                     vo.setProgress(DatabaseMigrationProgressComputer.calculateProgressPercent(task, tableCount));
                     vo.setTotalTableCount(tableCount);
@@ -380,11 +380,27 @@ public class DatabaseSyncServiceImpl implements DatabaseSyncService {
     }
 
     private void clearTableGroups(String taskId) {
-        List<TableGroup> tableGroups = profileComponent.getTableGroupAll(taskId);
-        if (CollectionUtils.isEmpty(tableGroups)) {
+        DatabaseMigrationSyncTask task = taskService.get(taskId);
+        if (task == null || CollectionUtils.isEmpty(task.getDatabaseMappings())) {
             return;
         }
-        tableGroups.forEach(group -> profileComponent.removeTableGroup(group.getId()));
+        for (DatabaseMapping mapping : task.getSortedDatabaseMappings()) {
+            String mappingId = DatabaseMigrationSyncTask.toTableGroupMappingId(taskId, mapping.getIndex());
+            profileComponent.getTableGroupAll(mappingId)
+                    .forEach(group -> profileComponent.removeTableGroup(group.getId()));
+        }
+    }
+
+    private List<TableGroup> listTaskTableGroups(DatabaseMigrationSyncTask task) {
+        if (task == null || CollectionUtils.isEmpty(task.getDatabaseMappings())) {
+            return Collections.emptyList();
+        }
+        List<TableGroup> all = new ArrayList<>();
+        for (DatabaseMapping mapping : task.getSortedDatabaseMappings()) {
+            all.addAll(profileComponent.getTableGroupAll(
+                    DatabaseMigrationSyncTask.toTableGroupMappingId(task.getId(), mapping.getIndex())));
+        }
+        return all;
     }
 
     private void validateMappingConnectors(List<DatabaseMapping> mappings) {
