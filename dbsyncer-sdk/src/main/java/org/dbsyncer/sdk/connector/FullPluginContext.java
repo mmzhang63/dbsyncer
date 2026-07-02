@@ -16,6 +16,9 @@ public final class FullPluginContext extends AbstractPluginContext implements Cu
 
     private boolean targetConnector = false;
 
+    //
+    private String commandKey;
+
     @Override
     public ModelEnum getModelEnum() {
         return ModelEnum.FULL;
@@ -37,5 +40,14 @@ public final class FullPluginContext extends AbstractPluginContext implements Cu
 
     public void setTargetConnector(boolean targetConnector) {
         this.targetConnector = targetConnector;
+    }
+
+    @Override
+    public String getCommandKey() {
+        return commandKey;
+    }
+
+    public void setCommandKey(String commandKey) {
+        this.commandKey = commandKey;
     }
 }

@@ -30,12 +30,11 @@ import org.dbsyncer.sdk.schema.SchemaResolver;
 import org.dbsyncer.sdk.util.PrimaryKeyUtil;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -101,7 +100,7 @@ public final class OceanBaseConnector extends AbstractDatabaseConnector {
 
     @Override
     public List<Table> getTable(DatabaseConnectorInstance connectorInstance, ConnectorServiceContext context) {
-        String database = resolveDatabase(connectorInstance, context);
+        String database = context.getCatalog();
         if (StringUtil.isBlank(database)) {
             return Collections.emptyList();
         }
@@ -341,26 +340,8 @@ public final class OceanBaseConnector extends AbstractDatabaseConnector {
         return null;
     }
 
-    private String resolveDatabase(DatabaseConnectorInstance connectorInstance, ConnectorServiceContext context) {
-        if (context != null && StringUtil.isNotBlank(context.getCatalog())) {
-            return context.getCatalog().trim();
-        }
-        if (StringUtil.isNotBlank(connectorInstance.getCatalog())) {
-            return connectorInstance.getCatalog().trim();
-        }
-        return connectorInstance.execute(databaseTemplate -> {
-            try {
-                Connection connection = databaseTemplate.getSimpleConnection().getConnection();
-                String catalog = connection.getCatalog();
-                return StringUtil.isNotBlank(catalog) ? catalog.trim() : StringUtil.EMPTY;
-            } catch (SQLException e) {
-                return StringUtil.EMPTY;
-            }
-        });
-    }
-
     private String resolveTableType(Object tableType) {
-        if (tableType != null && TableTypeEnum.VIEW.getCode().equalsIgnoreCase(String.valueOf(tableType))) {
+        if (tableType != null && StringUtil.equalsIgnoreCase(TableTypeEnum.VIEW.getCode(), String.valueOf(tableType))) {
             return TableTypeEnum.VIEW.getCode();
         }
         return TableTypeEnum.TABLE.getCode();

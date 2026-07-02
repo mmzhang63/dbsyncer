@@ -43,6 +43,7 @@ import org.dbsyncer.sdk.util.PrimaryKeyUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.SqlParameterValue;
 import org.springframework.jdbc.support.rowset.ResultSetWrappingSqlRowSet;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.jdbc.support.rowset.SqlRowSetMetaData;
@@ -52,6 +53,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -282,35 +284,27 @@ public abstract class AbstractDatabaseConnector extends AbstractConnector implem
 
     @Override
     public Result reader(DatabaseConnectorInstance connectorInstance, ReaderContext context) {
-        // 1、获取查询SQL
-        boolean supportedCursor = context.isSupportedCursor() && context.getCursors() != null && context.getCursors().length > 0;
-        String queryKey = supportedCursor ? ConnectorConstant.OPERTION_QUERY_CURSOR : ConnectorConstant.OPERTION_QUERY;
-        String querySql;
-        if (context instanceof FullPluginContext ) {
-            FullPluginContext full = (FullPluginContext) context;
-            boolean targetConnector = full.isTargetConnector();
-            String condition = buildQueryCondition(full.getFilter(), context.getArgs());
-            if (StringUtil.isNotBlank(condition)) {
-                queryKey = targetConnector
-                        ? ConnectorConstant.OPERTION_QUERY_TARGET_IN
-                        : ConnectorConstant.OPERTION_QUERY_SOURCE_IN;
-                querySql = context.getCommand().get(queryKey);
-                Assert.hasText(querySql, "查询语句不能为空.");
-                querySql = buildTargetReaderSql(querySql, condition);
-            } else if (targetConnector) {
+        String querySql = null;
+        String queryKey = context.getCommandKey();
+        if (StringUtil.isBlank(queryKey)) {
+            boolean supportedCursor = context.isSupportedCursor() && context.getCursors() != null && context.getCursors().length > 0;
+            if (context instanceof FullPluginContext && ((FullPluginContext) context).isTargetConnector()) {
                 queryKey = supportedCursor ? ConnectorConstant.OPERTION_QUERY_TARGET_CURSOR : ConnectorConstant.OPERTION_QUERY_TARGET;
                 querySql = context.getCommand().get(queryKey);
                 Assert.hasText(querySql, "查询语句不能为空.");
                 Collections.addAll(context.getArgs(), supportedCursor ? getPageCursorArgs(context) : getPageArgs(context));
             } else {
+                queryKey = supportedCursor ? ConnectorConstant.OPERTION_QUERY_CURSOR : ConnectorConstant.OPERTION_QUERY;
                 querySql = context.getCommand().get(queryKey);
                 Assert.hasText(querySql, "查询语句不能为空.");
                 Collections.addAll(context.getArgs(), supportedCursor ? getPageCursorArgs(context) : getPageArgs(context));
             }
         } else {
+            FullPluginContext full = (FullPluginContext) context;
+            String condition = buildQueryCondition(full.getFilter(), context.getArgs());
             querySql = context.getCommand().get(queryKey);
             Assert.hasText(querySql, "查询语句不能为空.");
-            Collections.addAll(context.getArgs(), supportedCursor ? getPageCursorArgs(context) : getPageArgs(context));
+            querySql = buildTargetReaderSql(querySql, condition);
         }
         final String finalQuerySql = querySql;
         // 3、执行SQL
@@ -1043,9 +1037,30 @@ public abstract class AbstractDatabaseConnector extends AbstractConnector implem
                 args.addAll(cd.apply());
                 continue;
             }
-            args.add(val);
+            args.add(wrapBindParameter(f, val));
         }
         return args.toArray();
+    }
+
+    /**
+     * OceanBase 等对 UPSERT 中二进制列绑参较敏感，显式声明 JDBC 类型避免 setObject 推断失败。
+     */
+    protected Object wrapBindParameter(Field field, Object val) {
+        if (!(val instanceof byte[])) {
+            return val;
+        }
+        return new SqlParameterValue(resolveBinarySqlType(field), val);
+    }
+
+    private static int resolveBinarySqlType(Field field) {
+        if (field == null || StringUtil.isBlank(field.getTypeName())) {
+            return Types.VARBINARY;
+        }
+        String type = field.getTypeName().trim().toUpperCase(Locale.ROOT);
+        if (type.endsWith("BLOB") || "BLOB".equals(type)) {
+            return Types.BLOB;
+        }
+        return Types.VARBINARY;
     }
 
     private void printTraceLog(PluginContext context, String event, Map row, boolean success, String message) {

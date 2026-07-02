@@ -3,6 +3,8 @@ package org.dbsyncer.common.util;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONValidator;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -126,24 +128,31 @@ public abstract class JsonUtil {
                 list.add(sanitizeForJson(x));
             return list;
         }
-        if (o instanceof Double) {
-            double d = (Double) o;
-            if (Double.isNaN(d) || Double.isInfinite(d))
-                return String.valueOf(d);
-        }
-        if (o instanceof Float) {
-            float f = (Float) o;
-            if (Float.isNaN(f) || Float.isInfinite(f))
-                return String.valueOf(f);
-        }
-        if (o instanceof java.util.Date) {
-            return String.valueOf(((java.util.Date) o).getTime());
-        }
         if (o instanceof String) {
             return sanitizeStringForJson((String) o);
         }
-        if (o instanceof Number || o instanceof Boolean) {
+        if (o instanceof Boolean) {
             return o;
+        }
+        if (o instanceof Number) {
+            if (o instanceof Double) {
+                double d = (Double) o;
+                if (Double.isNaN(d) || Double.isInfinite(d)) {
+                    return String.valueOf(d);
+                }
+                return o;
+            }
+            if (o instanceof Float) {
+                float f = (Float) o;
+                if (Float.isNaN(f) || Float.isInfinite(f)) {
+                    return String.valueOf(f);
+                }
+                return o;
+            }
+            if (o instanceof BigDecimal || o instanceof BigInteger) {
+                return o;
+            }
+            return ((Number) o).longValue();
         }
         return String.valueOf(o);
     }

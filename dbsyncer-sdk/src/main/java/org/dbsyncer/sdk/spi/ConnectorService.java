@@ -105,6 +105,13 @@ public interface ConnectorService<I extends ConnectorInstance, C extends Connect
     /**
      * 分页获取数据源数据
      */
+//    Result reader(I connectorInstance, ReaderContext context);
+
+    /**
+     * 业务自定义查
+     *
+     * @return
+     */
     Result reader(I connectorInstance, ReaderContext context);
 
     /**

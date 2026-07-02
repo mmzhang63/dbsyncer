@@ -30,7 +30,6 @@ import org.dbsyncer.sdk.plugin.ReaderContext;
 import org.dbsyncer.sdk.schema.SchemaResolver;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -100,8 +99,7 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
         DatabaseConfig effectiveConfig = copyDatabaseConfig(config);
         effectiveConfig.setUrl(buildJdbcUrl(config, catalog));
         effectiveConfig.setDatabase(catalog);
-        String schema = StringUtil.isNotBlank(context.getSchema()) ? context.getSchema() : catalog;
-        return new DatabaseConnectorInstance(effectiveConfig, StringUtil.EMPTY, schema);
+        return new DatabaseConnectorInstance(effectiveConfig, StringUtil.EMPTY, StringUtil.getIfBlank(context.getSchema(), catalog));
     }
 
     @Override
@@ -139,7 +137,7 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
 
     @Override
     public List<Table> getTable(DatabaseConnectorInstance connectorInstance, ConnectorServiceContext context) {
-        String database = resolveDatabase(connectorInstance, context);
+        String database = StringUtil.getIfBlank(context.getSchema(), context.getCatalog());
         if (StringUtil.isBlank(database)) {
             return Collections.emptyList();
         }
@@ -178,7 +176,7 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
                 return super.getMetaInfo(connectorInstance, context);
             }
         }
-        String database = resolveDatabase(connectorInstance, context);
+        String database = StringUtil.getIfBlank(context.getSchema(), context.getCatalog());
         if (StringUtil.isBlank(database)) {
             return Collections.emptyList();
         }
@@ -278,7 +276,7 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
 
     private String qualifyTableName(DatabaseConnectorInstance targetInstance, String tableName) {
         String qualifiedTable = buildWithQuotation(tableName);
-        String database = resolveInstanceDatabase(targetInstance);
+        String database = StringUtil.isNotBlank(targetInstance.getSchema()) ? targetInstance.getSchema() : targetInstance.getCatalog();
         if (StringUtil.isNotBlank(database)) {
             return buildWithQuotation(database) + "." + qualifiedTable;
         }
@@ -384,42 +382,6 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
             }
         });
         return context;
-    }
-
-    private String resolveDatabase(DatabaseConnectorInstance connectorInstance, ConnectorServiceContext context) {
-        if (context != null && StringUtil.isNotBlank(context.getCatalog())) {
-            return context.getCatalog().trim();
-        }
-        String database = resolveInstanceDatabase(connectorInstance);
-        if (StringUtil.isNotBlank(database)) {
-            return database;
-        }
-        return connectorInstance.execute(databaseTemplate -> {
-            try {
-                Connection connection = databaseTemplate.getSimpleConnection().getConnection();
-                String catalog = connection.getCatalog();
-                return StringUtil.isNotBlank(catalog) ? catalog.trim() : StringUtil.EMPTY;
-            } catch (SQLException e) {
-                return StringUtil.EMPTY;
-            }
-        });
-    }
-
-    private String resolveInstanceDatabase(DatabaseConnectorInstance connectorInstance) {
-        if (connectorInstance == null) {
-            return StringUtil.EMPTY;
-        }
-        if (StringUtil.isNotBlank(connectorInstance.getCatalog())) {
-            return connectorInstance.getCatalog().trim();
-        }
-        if (StringUtil.isNotBlank(connectorInstance.getSchema())) {
-            return connectorInstance.getSchema().trim();
-        }
-        DatabaseConfig config = connectorInstance.getConfig();
-        if (config != null && StringUtil.isNotBlank(config.getDatabase())) {
-            return config.getDatabase().trim();
-        }
-        return StringUtil.EMPTY;
     }
 
     private String resolveTableType(Object engine) {
