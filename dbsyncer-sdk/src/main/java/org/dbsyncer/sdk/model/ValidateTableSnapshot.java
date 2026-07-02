@@ -6,7 +6,7 @@ package org.dbsyncer.sdk.model;
 import java.io.Serializable;
 
 /**
- * 表校验快照：正向与反向扫描各自维护续跑游标。
+ * 表校验快照：使用 cursor 记录当前阶段（正向/反向）的续跑页码。
  *
  * @author wuji
  */
@@ -21,14 +21,10 @@ public class ValidateTableSnapshot implements Serializable {
     /** 正向扫描是否已完成 0 未完成 1 已完成 */
     private int sourceScanDone;
 
-    /** 反向扫描下一页页码 */
-    private long reverseCursor;
-
     public ValidateTableSnapshot(long cursor, int status) {
         this.cursor = cursor;
         this.status = status;
         this.sourceScanDone = 0;
-        this.reverseCursor = 1L;
     }
 
     public long getCursor() {
@@ -55,11 +51,4 @@ public class ValidateTableSnapshot implements Serializable {
         this.sourceScanDone = sourceScanDone;
     }
 
-    public long getReverseCursor() {
-        return reverseCursor;
-    }
-
-    public void setReverseCursor(long reverseCursor) {
-        this.reverseCursor = reverseCursor;
-    }
 }

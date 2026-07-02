@@ -3,6 +3,7 @@
  */
 package org.dbsyncer.sdk.model;
 
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -124,6 +125,9 @@ public class DatabaseMapping {
      * 按 index 升序返回表映射列表（副本，不修改原列表）。
      */
     public List<TableMapping> getSortedTableMappings() {
+        if (tableMappings == null || tableMappings.isEmpty()) {
+            return Collections.emptyList();
+        }
         return tableMappings.stream()
                 .sorted(Comparator.comparingInt(TableMapping::getIndex))
                 .collect(Collectors.toList());
