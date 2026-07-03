@@ -75,9 +75,11 @@ public class DatabaseMigrationSnapshot implements Serializable {
     }
 
     public DatabaseMigrationTableSnapshot getOrCreateTable(int tableIndex) {
-        return tables.computeIfAbsent(tableIndex, key -> new DatabaseMigrationTableSnapshot(
-                MigrationStepStatusEnum.PENDING.getCode(),
-                1,
-                MigrationStepStatusEnum.PENDING.getCode()));
+        return tables.computeIfAbsent(tableIndex, key -> DatabaseMigrationTableSnapshot.createInitial(true, true));
+    }
+
+    public DatabaseMigrationTableSnapshot getOrCreateTable(int tableIndex, boolean enableCopySchema, boolean enableCopyData) {
+        return tables.computeIfAbsent(tableIndex,
+                key -> DatabaseMigrationTableSnapshot.createInitial(enableCopySchema, enableCopyData));
     }
 }

@@ -93,10 +93,10 @@ public final class DatabaseMigrationProgressComputer {
                 if (tableSnapshot == null) {
                     continue;
                 }
-                if (task.isEnableCopySchema() && MigrationStepStatusEnum.isDone(tableSnapshot.getSchemaStatus())) {
+                if (task.isEnableCopySchema() && tableSnapshot.isSchemaPhaseDone()) {
                     count++;
                 }
-                if (task.isEnableCopyData() && MigrationStepStatusEnum.isDone(tableSnapshot.getDataStatus())) {
+                if (task.isEnableCopyData() && tableSnapshot.isDataPhaseDone()) {
                     count++;
                 }
             }

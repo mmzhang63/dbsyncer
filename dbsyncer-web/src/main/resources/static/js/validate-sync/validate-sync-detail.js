@@ -76,6 +76,16 @@
             }
         }
 
+        function normalizeDiffList(content) {
+            if (!content) {
+                return [];
+            }
+            if (Array.isArray(content)) {
+                return content;
+            }
+            return Array.isArray(content.data) ? content.data : [];
+        }
+
         function getDiffTotal(row) {
             var n = Number(row.diffTotal) || 0;
             if (n > 0) {
@@ -261,16 +271,14 @@
             return html;
         }
 
-        function hasTargetExtraDiff(content) {
-            var data = (content && content.data) || [];
-            return data.some(function (d) {
+        function hasTargetExtraDiff(diffList) {
+            return diffList.some(function (d) {
                 return d && String(d.msg || '') === '目标多余';
             });
         }
 
-        function hasNonTargetExtraDiff(content) {
-            var data = (content && content.data) || [];
-            return data.some(function (d) {
+        function hasNonTargetExtraDiff(diffList) {
+            return diffList.some(function (d) {
                 return d && String(d.msg || '') !== '目标多余';
             });
         }
@@ -329,7 +337,7 @@
                 return;
             }
             var type = row.type || '';
-            var data = content.data || [];
+            var data = normalizeDiffList(content);
             var tableNameOuter = row.sourceTableName || '-';
             var src = row.sourceTotal != null ? row.sourceTotal : 0;
             var tgt = row.targetTotal != null ? row.targetTotal : 0;
@@ -338,7 +346,7 @@
 
             closeDiffDetailModal();
             currentDetailId = row.id || '';
-            currentDetailContent = content;
+            currentDetailContent = data;
 
             diffModalInstance = showConfirm({
                 title: '差异详情',

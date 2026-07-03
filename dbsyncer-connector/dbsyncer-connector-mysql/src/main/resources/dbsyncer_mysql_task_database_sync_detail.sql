@@ -2,7 +2,7 @@ CREATE TABLE `dbsyncer_task_database_sync_detail` (
     `ID`                  varchar(64)  NOT NULL COMMENT '唯一ID',
     `TASK_ID`             varchar(64)  NOT NULL COMMENT '迁移任务ID',
     `TYPE`                varchar(32)  NOT NULL COMMENT '类型: tableSchema-结构迁移 rowData-数据迁移',
-    `TABLE_INDEX`         int          NOT NULL COMMENT '表全局序号',
+    `TABLE_INDEX`         int          NOT NULL COMMENT '库映射内表序号',
     `SOURCE_DATABASE`     varchar(64)  DEFAULT '' COMMENT '源库名',
     `SOURCE_SCHEMA`       varchar(64)  DEFAULT '' COMMENT '源Schema',
     `TARGET_DATABASE`     varchar(64)  DEFAULT '' COMMENT '目标库名/Schema',
@@ -15,6 +15,6 @@ CREATE TABLE `dbsyncer_task_database_sync_detail` (
     `CREATE_TIME`         bigint       NOT NULL COMMENT '创建时间',
     `UPDATE_TIME`         bigint       NOT NULL COMMENT '修改时间',
     PRIMARY KEY (`ID`),
-    UNIQUE KEY `UK_TASK_TYPE_TABLE` (`TASK_ID`,`TYPE`,`TABLE_INDEX`),
+    UNIQUE KEY `UK_TASK_TYPE_TABLE` (`TASK_ID`,`TYPE`,`SOURCE_DATABASE`,`SOURCE_SCHEMA`,`TARGET_DATABASE`,`TABLE_INDEX`),
     KEY `IDX_TASK_STATUS` (`TASK_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='整库迁移任务明细表';
