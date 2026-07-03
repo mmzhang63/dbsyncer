@@ -257,17 +257,24 @@ public final class SqlServerConnector extends AbstractDatabaseConnector {
         List<Integer> result = db.execute(databaseTemplate -> databaseTemplate.queryForList(String.format(QUERY_TABLE_IDENTITY, tableName), Integer.class));
         // 允许显式插入标识列的值
         if (!CollectionUtils.isEmpty(result)) {
-
-            String insert = String.format(SET_TABLE_IDENTITY_ON, commandConfig.getSchema(), tableName) + targetCommand.get(ConnectorConstant.OPERTION_INSERT)
-                    + String.format(SET_TABLE_IDENTITY_OFF, commandConfig.getSchema(), tableName);
+            String schema = resolveSchema(commandConfig.getSchema());
+            String insert = String.format(SET_TABLE_IDENTITY_ON, schema, tableName) + targetCommand.get(ConnectorConstant.OPERTION_INSERT)
+                    + String.format(SET_TABLE_IDENTITY_OFF, schema, tableName);
             targetCommand.put(ConnectorConstant.OPERTION_INSERT, insert);
 
-            String upset = String.format(SET_TABLE_IDENTITY_ON, commandConfig.getSchema(), tableName) + targetCommand.get(ConnectorConstant.OPERTION_UPSERT)
-                    + String.format(SET_TABLE_IDENTITY_OFF, commandConfig.getSchema(), tableName);
+            String upset = String.format(SET_TABLE_IDENTITY_ON, schema, tableName) + targetCommand.get(ConnectorConstant.OPERTION_UPSERT)
+                    + String.format(SET_TABLE_IDENTITY_OFF, schema, tableName);
             targetCommand.put(ConnectorConstant.OPERTION_UPSERT, upset);
 
         }
         return targetCommand;
+    }
+
+    /**
+     * SQL Server 目标 schema；未配置时默认 dbo（与 {@link #getSchema(String, Connection)} 一致）。
+     */
+    private String resolveSchema(String schema) {
+        return StringUtil.isNotBlank(schema) ? schema : "dbo";
     }
 
     @Override

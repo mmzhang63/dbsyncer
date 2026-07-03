@@ -5,7 +5,8 @@ CREATE TABLE `dbsyncer_task_database_sync_detail` (
     `TABLE_INDEX`         int          NOT NULL COMMENT '库映射内表序号',
     `SOURCE_DATABASE`     varchar(64)  DEFAULT '' COMMENT '源库名',
     `SOURCE_SCHEMA`       varchar(64)  DEFAULT '' COMMENT '源Schema',
-    `TARGET_DATABASE`     varchar(64)  DEFAULT '' COMMENT '目标库名/Schema',
+    `TARGET_DATABASE`     varchar(64)  DEFAULT '' COMMENT '目标库名',
+    `TARGET_SCHEMA`       varchar(64)  DEFAULT '' COMMENT '目标Schema',
     `SOURCE_TABLE`        varchar(64)  DEFAULT '' COMMENT '源表名',
     `TARGET_TABLE`        varchar(64)  DEFAULT '' COMMENT '目标表名',
     `SOURCE_TOTAL`        bigint       DEFAULT NULL COMMENT '源端总行数',
@@ -15,6 +16,11 @@ CREATE TABLE `dbsyncer_task_database_sync_detail` (
     `CREATE_TIME`         bigint       NOT NULL COMMENT '创建时间',
     `UPDATE_TIME`         bigint       NOT NULL COMMENT '修改时间',
     PRIMARY KEY (`ID`),
-    UNIQUE KEY `UK_TASK_TYPE_TABLE` (`TASK_ID`,`TYPE`,`SOURCE_DATABASE`,`SOURCE_SCHEMA`,`TARGET_DATABASE`,`TABLE_INDEX`),
+    UNIQUE KEY `UK_TASK_TYPE_TABLE` (`TASK_ID`,`TYPE`,`SOURCE_DATABASE`,`SOURCE_SCHEMA`,`TARGET_DATABASE`,`TARGET_SCHEMA`,`TABLE_INDEX`),
     KEY `IDX_TASK_STATUS` (`TASK_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='整库迁移任务明细表';
+
+-- 已有库升级（按需执行）：
+-- ALTER TABLE `dbsyncer_task_database_sync_detail` ADD COLUMN `TARGET_SCHEMA` varchar(64) DEFAULT '' COMMENT '目标Schema' AFTER `TARGET_DATABASE`;
+-- ALTER TABLE `dbsyncer_task_database_sync_detail` DROP INDEX `UK_TASK_TYPE_TABLE`;
+-- ALTER TABLE `dbsyncer_task_database_sync_detail` ADD UNIQUE KEY `UK_TASK_TYPE_TABLE` (`TASK_ID`,`TYPE`,`SOURCE_DATABASE`,`SOURCE_SCHEMA`,`TARGET_DATABASE`,`TARGET_SCHEMA`,`TABLE_INDEX`);

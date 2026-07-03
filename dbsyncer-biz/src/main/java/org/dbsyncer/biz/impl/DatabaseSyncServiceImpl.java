@@ -441,10 +441,18 @@ public class DatabaseSyncServiceImpl implements DatabaseSyncService {
         return result;
     }
 
+    /**
+     * 任务总表数：以库映射配置中的表映射数为准，运行中不因 TableGroup 逐步落库而波动。
+     */
     private int resolveTotalTableCount(DatabaseMigrationSyncTask task, List<TableGroup> tableGroups) {
-        if (!CollectionUtils.isEmpty(tableGroups)) {
-            return tableGroups.size();
+        int configuredCount = countConfiguredTableMappings(task);
+        if (configuredCount > 0) {
+            return configuredCount;
         }
+        return CollectionUtils.isEmpty(tableGroups) ? 0 : tableGroups.size();
+    }
+
+    private int countConfiguredTableMappings(DatabaseMigrationSyncTask task) {
         if (task == null || CollectionUtils.isEmpty(task.getDatabaseMappings())) {
             return 0;
         }
@@ -476,6 +484,7 @@ public class DatabaseSyncServiceImpl implements DatabaseSyncService {
         fields.add(ConfigConstant.DATABASE_SYNC_DETAIL_SOURCE_DATABASE);
         fields.add(ConfigConstant.DATABASE_SYNC_DETAIL_SOURCE_SCHEMA);
         fields.add(ConfigConstant.DATABASE_SYNC_DETAIL_TARGET_DATABASE);
+        fields.add(ConfigConstant.DATABASE_SYNC_DETAIL_TARGET_SCHEMA);
         fields.add(ConfigConstant.DATABASE_SYNC_DETAIL_SOURCE_TABLE);
         fields.add(ConfigConstant.DATABASE_SYNC_DETAIL_TARGET_TABLE);
         fields.add(ConfigConstant.TASK_SOURCE_TOTAL);

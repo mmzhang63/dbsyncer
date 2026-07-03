@@ -327,9 +327,7 @@ public final class ElasticsearchConnector extends AbstractConnector implements C
             builder.from((context.getPageIndex() - 1) * context.getPageSize());
         }
         builder.size(context.getPageSize());
-        String index = targetConnector
-                ? command.get(ConnectorConstant.OPERTION_QUERY_TARGET)
-                : command.get(_SOURCE_INDEX);
+        String index = targetConnector ? command.get(_TARGET_INDEX) : command.get(_SOURCE_INDEX);
 
         return searchResult(connectorInstance, context, index, builder);
     }
@@ -416,7 +414,7 @@ public final class ElasticsearchConnector extends AbstractConnector implements C
         Map<String, String> command = new HashMap<>();
         // 查询字段
         Table table = commandConfig.getTable();
-        command.put(_SOURCE_INDEX, table.getName());
+        command.put(ConnectorConstant.OPERTION_QUERY_COUNT, table.getName());
         command.put(ConnectorConstant.OPERTION_QUERY_SOURCE_IN, table.getName());
         List<Field> column = table.getColumn();
         if (!CollectionUtils.isEmpty(column)) {
@@ -437,16 +435,20 @@ public final class ElasticsearchConnector extends AbstractConnector implements C
         Table table = commandConfig.getTable();
         PrimaryKeyUtil.findTablePrimaryKeys(table);
         Map<String, String> command = new HashMap<>();
-        command.put(_TARGET_INDEX, table.getName());
         Object type = table.getExtInfo().get(_TYPE);
         if (type != null) {
             command.put(_TYPE, String.valueOf(type));
         }
         command.put(ConnectorConstant.TARGET_QUERY_COUNT, table.getName());
         command.put(ConnectorConstant.OPERTION_QUERY_TARGET_IN, table.getName());
+        List<Field> column = table.getColumn();
+        if (!CollectionUtils.isEmpty(column)) {
+            List<String> fieldNames = column.stream().map(Field::getName).collect(Collectors.toList());
+            command.put(ConnectorConstant.OPERTION_QUERY_TARGET, StringUtil.join(fieldNames, ","));
+        }
         List<Filter> targetFilter = commandConfig.getFilter();
         if (!CollectionUtils.isEmpty(targetFilter)) {
-            command.put(ConnectorConstant.TARGET_QUERY_FILTER, JsonUtil.objToJson(targetFilter));
+            command.put(ConnectorConstant.OPERTION_TARGET_QUERY_FIELDS, JsonUtil.objToJson(targetFilter));
         }
         return command;
     }
@@ -632,12 +634,13 @@ public final class ElasticsearchConnector extends AbstractConnector implements C
     }
 
     private void genSearchSourceBuilder(SearchSourceBuilder builder, Map<String, String> command, boolean targetConnector) {
-        String fieldNamesJson = command.get(ConnectorConstant.OPERTION_QUERY);
+        String fieldKey = targetConnector ? ConnectorConstant.OPERTION_QUERY_TARGET : ConnectorConstant.OPERTION_QUERY;
+        String fieldNamesJson = command.get(fieldKey);
         if (!StringUtil.isBlank(fieldNamesJson)) {
             builder.fetchSource(StringUtil.split(fieldNamesJson, ","), null);
         }
 
-        String filterKey = targetConnector ? ConnectorConstant.TARGET_QUERY_FILTER : ConnectorConstant.OPERTION_QUERY_FILTER;
+        String filterKey = targetConnector ? ConnectorConstant.OPERTION_TARGET_QUERY_FIELDS : ConnectorConstant.OPERTION_QUERY_FILTER;
         String filterJson = command.get(filterKey);
         List<Filter> filters = null;
         if (!StringUtil.isBlank(filterJson)) {

@@ -203,6 +203,7 @@ public abstract class DocumentUtil {
         String sourceDatabase = getString(params, ConfigConstant.DATABASE_SYNC_DETAIL_SOURCE_DATABASE);
         String sourceSchema = getString(params, ConfigConstant.DATABASE_SYNC_DETAIL_SOURCE_SCHEMA);
         String targetDatabase = getString(params, ConfigConstant.DATABASE_SYNC_DETAIL_TARGET_DATABASE);
+        String targetSchema = getString(params, ConfigConstant.DATABASE_SYNC_DETAIL_TARGET_SCHEMA);
         String sourceTable = getString(params, ConfigConstant.DATABASE_SYNC_DETAIL_SOURCE_TABLE);
         String targetTable = getString(params, ConfigConstant.DATABASE_SYNC_DETAIL_TARGET_TABLE);
         Long sourceTotal = getLong(params, ConfigConstant.TASK_SOURCE_TOTAL);
@@ -221,6 +222,7 @@ public abstract class DocumentUtil {
         doc.add(new StringField(ConfigConstant.DATABASE_SYNC_DETAIL_SOURCE_DATABASE, sourceDatabase, Field.Store.YES));
         doc.add(new StringField(ConfigConstant.DATABASE_SYNC_DETAIL_SOURCE_SCHEMA, sourceSchema, Field.Store.YES));
         doc.add(new StringField(ConfigConstant.DATABASE_SYNC_DETAIL_TARGET_DATABASE, targetDatabase, Field.Store.YES));
+        doc.add(new StringField(ConfigConstant.DATABASE_SYNC_DETAIL_TARGET_SCHEMA, targetSchema, Field.Store.YES));
         doc.add(new StringField(ConfigConstant.DATABASE_SYNC_DETAIL_SOURCE_TABLE, sourceTable, Field.Store.YES));
         doc.add(new StringField(ConfigConstant.DATABASE_SYNC_DETAIL_TARGET_TABLE, targetTable, Field.Store.YES));
         doc.add(new LongPoint(ConfigConstant.TASK_SOURCE_TOTAL, sourceTotal));

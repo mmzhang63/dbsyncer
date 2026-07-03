@@ -47,7 +47,6 @@ public class ConnectorConstant {
      */
     public static final String OPERTION_QUERY_TARGET = "QUERY_TARGET";
 
-
     /**
      * 目标端按主键批量 IN 查询（无分页）
      */
@@ -58,7 +57,6 @@ public class ConnectorConstant {
      */
     public static final String OPERTION_QUERY_TARGET_CURSOR = "QUERY_TARGET_CURSOR";
 
-
     /**
      * 源端按主键批量 IN 查询（无分页）
      */
@@ -66,7 +64,6 @@ public class ConnectorConstant {
 
     /**
      * 游标分页实际使用的主键名列表（逗号分隔），与 QUERY_CURSOR 的 SQL 占位符一致。
-     *
      */
     public static final String CURSOR_PK_NAMES = "CURSOR_PK_NAMES";
 
@@ -74,6 +71,11 @@ public class ConnectorConstant {
      * 查询过滤条件
      */
     public static final String OPERTION_QUERY_FILTER = "QUERY_FILTER";
+
+    /**
+     * 目标端查询字段列表（ES fetchSource 等），逗号分隔；与源端 {@link #OPERTION_QUERY} 对应。
+     */
+    public static final String OPERTION_TARGET_QUERY_FIELDS = "TARGET_QUERY_FIELDS";
 
     /**
      * 查询总数
@@ -85,10 +87,6 @@ public class ConnectorConstant {
      */
     public static final String TARGET_QUERY_COUNT = "TARGET_QUERY_COUNT";
 
-    /**
-     * 目标表查询过滤条件（反向扫描等场景，与源端 {@link #OPERTION_QUERY_FILTER} 分离）
-     */
-    public static final String TARGET_QUERY_FILTER = "TARGET_QUERY_FILTER";
 
     /**
      * 主表，扩展表映射关系
