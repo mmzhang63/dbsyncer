@@ -603,16 +603,16 @@ public class ValidateSyncServiceImpl implements ValidateSyncService {
         }
         task.setEnableSync(StringUtil.isNotBlank(params.get("enableSync")));
         task.setEnableReverseScan(StringUtil.isNotBlank(params.get("enableReverseScan")));
-        task.setEnableDeleteExtra(StringUtil.isNotBlank(params.get("enableDeleteExtra")));
+        task.setEnableReverseSync(StringUtil.isNotBlank(params.get("enableReverseSync")));
         task.setEnableSchema(StringUtil.isNotBlank(params.get("enableSchema")));
         task.setEnableRowData(StringUtil.isNotBlank(params.get("enableRowData")));
         if (task.isEnableReverseScan() && !task.isEnableRowData()) {
             task.setEnableReverseScan(false);
         }
         if (!task.isEnableReverseScan()) {
-            task.setEnableDeleteExtra(false);
-        } else if (task.isEnableDeleteExtra() && !task.isEnableRowData()) {
-            task.setEnableDeleteExtra(false);
+            task.setEnableReverseSync(false);
+        } else if (task.isEnableReverseSync() && !task.isEnableRowData()) {
+            task.setEnableReverseSync(false);
         }
         task.setEnableIndex(StringUtil.isNotBlank(params.get("enableIndex")));
         task.setEnableTrigger(StringUtil.isNotBlank(params.get("enableTrigger")));

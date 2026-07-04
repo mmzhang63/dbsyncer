@@ -17,9 +17,7 @@ public enum MigrationStepStatusEnum {
     /** 已完成 */
     DONE(1, "已完成"),
     /** 失败 */
-    FAILED(2, "失败"),
-    /** 跳过 */
-    SKIPPED(3, "跳过");
+    FAILED(2, "失败");
 
     private final int code;
     private final String message;
@@ -41,7 +39,7 @@ public enum MigrationStepStatusEnum {
      * 是否计入进度（已完成或跳过）。
      */
     public static boolean isDone(int status) {
-        return status == DONE.code || status == SKIPPED.code;
+        return status == DONE.code;
     }
 
     public static MigrationStepStatusEnum ofCode(int code) {

@@ -2,6 +2,7 @@ package org.dbsyncer.common.util;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONValidator;
+import com.alibaba.fastjson2.filter.ValueFilter;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -15,8 +16,14 @@ import java.util.Map;
 
 public abstract class JsonUtil {
 
+    /**
+     * 序列化时对 Map/Bean 叶子值做归一化：ClickHouse {@code UnsignedInteger} 等非标准 {@link Number}、
+     * {@code byte[]} 等 FastJSON2 难以直接写出的类型。
+     */
+    private static final ValueFilter JSON_VALUE_FILTER = (object, name, value) -> sanitizeForJson(value);
+
     public static String objToJson(Object obj) {
-        return JSON.toJSONString(obj);
+        return JSON.toJSONString(obj, JSON_VALUE_FILTER);
     }
 
     /**

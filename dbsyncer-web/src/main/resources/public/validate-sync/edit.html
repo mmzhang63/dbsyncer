@@ -150,8 +150,8 @@
                     </label>
                     <div class="form-control-area">
                         <label class="form-switch">
-                            <input name="enableDeleteExtra" type="checkbox" value="true"
-                                   th:checked="${task?.enableDeleteExtra}" />
+                            <input name="enableReverseSync" type="checkbox" value="true"
+                                   th:checked="${task?.enableReverseSync}" />
                             <span class="switch-track">
                                 <span class="switch-option switch-option-on">Yes</span>
                                 <span class="switch-option switch-option-off">No</span>
@@ -234,7 +234,7 @@
         var $form = $('#validate-sync-modify-form');
         var rowData = $form.find('input[name="enableRowData"]').is(':checked');
         var $reverseScan = $form.find('input[name="enableReverseScan"]');
-        var $deleteExtra = $form.find('input[name="enableDeleteExtra"]');
+        var $reverseSync = $form.find('input[name="enableReverseSync"]');
         var $deleteWrap = $('#validate-sync-delete-extra-wrap');
 
         var reverseAllowed = rowData;
@@ -248,18 +248,18 @@
         $deleteWrap.toggleClass('hidden', !reverseChecked);
 
         if (!reverseChecked) {
-            $deleteExtra.prop('checked', false);
-            setSwitchEnabled($deleteExtra, false);
+            $reverseSync.prop('checked', false);
+            setSwitchEnabled($reverseSync, false);
             return;
         }
 
-        setSwitchEnabled($deleteExtra, true);
+        setSwitchEnabled($reverseSync, true);
     }
 
     function validateTargetStrategy($form) {
         var reverseScan = $form.find('input[name="enableReverseScan"]').is(':checked');
-        var deleteExtra = $form.find('input[name="enableDeleteExtra"]').is(':checked');
-        if (!deleteExtra) {
+        var reverseSync = $form.find('input[name="enableReverseSync"]').is(':checked');
+        if (!reverseSync) {
             return true;
         }
         if (!reverseScan) {
@@ -302,7 +302,7 @@
                 }
             });
         };
-        if ($form.find('input[name="enableDeleteExtra"]').is(':checked')) {
+        if ($form.find('input[name="enableReverseSync"]').is(':checked')) {
             showConfirm({
                 title: '确定开启删除目标多余？',
                 body: '将删除目标库中源库不存在的记录，此操作不可恢复，请确认源库为权威基准。',
@@ -330,7 +330,7 @@
             }
         });
         $('#validate-sync-modify-form input[name="enableReverseScan"]').on('change', syncTargetStrategyState);
-        $('#validate-sync-modify-form input[name="enableDeleteExtra"]').on('change', syncTargetStrategyState);
+        $('#validate-sync-modify-form input[name="enableReverseSync"]').on('change', syncTargetStrategyState);
         syncTargetStrategyState();
 
         // 保存

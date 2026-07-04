@@ -63,7 +63,7 @@ public class ValidateSyncTask extends CommonTask {
     /**
      * 任务执行时是否自动删除目标库中源表不存在的多余行
      */
-    private boolean enableDeleteExtra = false;
+    private boolean enableReverseSync = false;
 
     /**
      * 表结构校验
@@ -223,12 +223,12 @@ public class ValidateSyncTask extends CommonTask {
         this.enableReverseScan = enableReverseScan;
     }
 
-    public boolean isEnableDeleteExtra() {
-        return enableDeleteExtra;
+    public boolean isEnableReverseSync() {
+        return enableReverseSync;
     }
 
-    public void setEnableDeleteExtra(boolean enableDeleteExtra) {
-        this.enableDeleteExtra = enableDeleteExtra;
+    public void setEnableReverseSync(boolean enableReverseSync) {
+        this.enableReverseSync = enableReverseSync;
     }
 
     public boolean isEnableRowData() {
