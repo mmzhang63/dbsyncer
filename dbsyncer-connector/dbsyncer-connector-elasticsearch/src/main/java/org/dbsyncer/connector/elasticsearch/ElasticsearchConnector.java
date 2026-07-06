@@ -270,7 +270,6 @@ public final class ElasticsearchConnector extends AbstractConnector implements C
     @Override
     public long getCount(ESConnectorInstance connectorInstance, MetaContext metaContext) {
         try {
-            // TODO 待优化，读table扩展信息
             Map<String, String> command = metaContext.getCommand();
             SearchSourceBuilder builder = new SearchSourceBuilder();
             boolean targetConnector = metaContext instanceof DefaultMetaContext && ((DefaultMetaContext) metaContext).isTargetConnector();
@@ -303,9 +302,8 @@ public final class ElasticsearchConnector extends AbstractConnector implements C
         try {
             // 订正校验场景
             if (!StringUtil.isBlank(context.getCommandKey())) {
-                return searchByFilter(connectorInstance, context, command, table);
+                return searchByFilter(connectorInstance, context, command, targetConnector);
             }
-
             // 分页查询
             return searchDeep(connectorInstance, context, command, targetConnector, table);
         } catch (IOException e) {
@@ -350,7 +348,7 @@ public final class ElasticsearchConnector extends AbstractConnector implements C
     }
 
     private Result searchByFilter(ESConnectorInstance connectorInstance, ReaderContext context,
-                                  Map<String, String> command, Table table) throws IOException {
+                                  Map<String, String> command, boolean targetConnector) throws IOException {
         BooleanFilter filter = ((FullPluginContext) context).getFilter();
         String index = command.get(context.getCommandKey());
         QueryBuilder dynamicQuery = buildFilterToQuery(filter);
@@ -358,11 +356,10 @@ public final class ElasticsearchConnector extends AbstractConnector implements C
             return new Result(Collections.emptyList());
         }
         SearchSourceBuilder builder = new SearchSourceBuilder();
-//      TODO 通过tableGroup映射的字段为准
-//        String fieldNamesJson = command.get(ConnectorConstant.OPERTION_QUERY);
-//        if (!StringUtil.isBlank(fieldNamesJson)) {
-//            builder.fetchSource(StringUtil.split(fieldNamesJson, ","), null);
-//        }
+        String fieldNamesJson = targetConnector ? command.get(ConnectorConstant.OPERTION_TARGET_QUERY_FIELDS) : command.get(ConnectorConstant.OPERTION_QUERY_FILTER);
+        if (!StringUtil.isBlank(fieldNamesJson)) {
+            builder.fetchSource(StringUtil.split(fieldNamesJson, ","), null);
+        }
         builder.query(dynamicQuery);
         builder.size(context.getPageSize());
         return searchResult(connectorInstance, context, index, builder);
