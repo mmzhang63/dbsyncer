@@ -2,10 +2,7 @@ package org.dbsyncer.common.util;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONValidator;
-import com.alibaba.fastjson2.filter.ValueFilter;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -16,14 +13,8 @@ import java.util.Map;
 
 public abstract class JsonUtil {
 
-    /**
-     * 序列化时对 Map/Bean 叶子值做归一化：ClickHouse {@code UnsignedInteger} 等非标准 {@link Number}、
-     * {@code byte[]} 等 FastJSON2 难以直接写出的类型。
-     */
-    private static final ValueFilter JSON_VALUE_FILTER = (object, name, value) -> sanitizeForJson(value);
-
     public static String objToJson(Object obj) {
-        return JSON.toJSONString(obj, JSON_VALUE_FILTER);
+        return JSON.toJSONString(obj);
     }
 
     /**
@@ -135,31 +126,24 @@ public abstract class JsonUtil {
                 list.add(sanitizeForJson(x));
             return list;
         }
+        if (o instanceof Double) {
+            double d = (Double) o;
+            if (Double.isNaN(d) || Double.isInfinite(d))
+                return String.valueOf(d);
+        }
+        if (o instanceof Float) {
+            float f = (Float) o;
+            if (Float.isNaN(f) || Float.isInfinite(f))
+                return String.valueOf(f);
+        }
+        if (o instanceof java.util.Date) {
+            return String.valueOf(((java.util.Date) o).getTime());
+        }
         if (o instanceof String) {
             return sanitizeStringForJson((String) o);
         }
-        if (o instanceof Boolean) {
+        if (o instanceof Number || o instanceof Boolean) {
             return o;
-        }
-        if (o instanceof Number) {
-            if (o instanceof Double) {
-                double d = (Double) o;
-                if (Double.isNaN(d) || Double.isInfinite(d)) {
-                    return String.valueOf(d);
-                }
-                return o;
-            }
-            if (o instanceof Float) {
-                float f = (Float) o;
-                if (Float.isNaN(f) || Float.isInfinite(f)) {
-                    return String.valueOf(f);
-                }
-                return o;
-            }
-            if (o instanceof BigDecimal || o instanceof BigInteger) {
-                return o;
-            }
-            return ((Number) o).longValue();
         }
         return String.valueOf(o);
     }

@@ -56,7 +56,7 @@ public class ValidateSyncTask extends CommonTask {
     private boolean enableSync = false;
 
     /**
-     * 是否反向扫描目标表，检测源库不存在的多余行
+     * 是否反向校验
      */
     private boolean enableReverseScan = false;
 

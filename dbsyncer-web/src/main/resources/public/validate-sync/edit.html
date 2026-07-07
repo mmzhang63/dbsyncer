@@ -124,11 +124,11 @@
             </div>
 
             <p><i class="fa fa-database text-success"></i> 目标策略</p>
-            <p class="text-xs text-tertiary">反向扫描目标表，扫描源表不存在,目标表存在的多余行</p>
+            <p class="text-xs text-tertiary">反向校验，对比源表，目标表多余的行</p>
             <div id="validate-sync-target-strategy" class="grid grid-cols-2 gap-4 mt-4">
                 <div class="form-item mb-0">
                     <label class="form-label">
-                        反向扫描
+                        反向校验
                         <i class="fa fa-question-circle text-tertiary" title="开启扫描目标表，记录源表不存在的多余行"></i>
                     </label>
                     <div class="form-control-area">
@@ -145,8 +145,8 @@
                 </div>
                 <div id="validate-sync-delete-extra-wrap" class="form-item mb-0 hidden">
                     <label class="form-label">
-                        删除目标多余
-                        <i class="fa fa-question-circle text-tertiary" title="任务执行时自动删除源表不存在的多余行，不可恢复；须开启行数据与反向扫描"></i>
+                        反向订正
+                        <i class="fa fa-question-circle text-tertiary" title="任务执行时自动删除源表不存在的多余行，不可恢复；须开启行数据与反向校验"></i>
                     </label>
                     <div class="form-control-area">
                         <label class="form-switch">
@@ -263,11 +263,11 @@
             return true;
         }
         if (!reverseScan) {
-            bootGrowl('删除目标多余须先开启反向扫描。', 'danger');
+            bootGrowl('反向订正须先开启反向校验。', 'danger');
             return false;
         }
         if (!$form.find('input[name="enableRowData"]').is(':checked')) {
-            bootGrowl('删除目标多余须同时开启行数据。', 'danger');
+            bootGrowl('反向订正须同时开启行数据。', 'danger');
             return false;
         }
         return true;
@@ -304,7 +304,7 @@
         };
         if ($form.find('input[name="enableReverseSync"]').is(':checked')) {
             showConfirm({
-                title: '确定开启删除目标多余？',
+                title: '确定开启反向订正？',
                 body: '将删除目标库中源库不存在的记录，此操作不可恢复，请确认源库为权威基准。',
                 icon: 'warning',
                 confirmType: 'danger',

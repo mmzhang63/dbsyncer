@@ -380,27 +380,15 @@ public class DatabaseSyncServiceImpl implements DatabaseSyncService {
     }
 
     private void clearTableGroups(String taskId) {
-        DatabaseMigrationSyncTask task = taskService.get(taskId);
-        if (task == null || CollectionUtils.isEmpty(task.getDatabaseMappings())) {
-            return;
-        }
-        for (DatabaseMapping mapping : task.getSortedDatabaseMappings()) {
-            String mappingId = DatabaseMigrationSyncTask.toTableGroupMappingId(taskId, mapping.getIndex());
-            profileComponent.getTableGroupAll(mappingId)
-                    .forEach(group -> profileComponent.removeTableGroup(group.getId()));
-        }
+        profileComponent.getTableGroupAll(taskId)
+                .forEach(group -> profileComponent.removeTableGroup(group.getId()));
     }
 
     private List<TableGroup> listTaskTableGroups(DatabaseMigrationSyncTask task) {
-        if (task == null || CollectionUtils.isEmpty(task.getDatabaseMappings())) {
+        if (task == null || StringUtil.isBlank(task.getId())) {
             return Collections.emptyList();
         }
-        List<TableGroup> all = new ArrayList<>();
-        for (DatabaseMapping mapping : task.getSortedDatabaseMappings()) {
-            all.addAll(profileComponent.getTableGroupAll(
-                    DatabaseMigrationSyncTask.toTableGroupMappingId(task.getId(), mapping.getIndex())));
-        }
-        return all;
+        return profileComponent.getTableGroupAll(task.getId());
     }
 
     private void validateMappingConnectors(List<DatabaseMapping> mappings) {

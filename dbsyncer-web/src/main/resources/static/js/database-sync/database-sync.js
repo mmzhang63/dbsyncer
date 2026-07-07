@@ -394,6 +394,24 @@
 
     function updateMappingCount() {
         $('#mappingCount').text(state.mappings.length);
+        updateAddMappingButtonState();
+    }
+
+    /**
+     * 临时方案：仅允许一条库映射关系。
+     */
+    function updateAddMappingButtonState() {
+        const $btn = $('#btnAddDbMapping');
+        if (!$btn.length || isReadOnly()) {
+            return;
+        }
+        const limitReached = state.mappings.length >= 1;
+        $btn.prop('disabled', limitReached);
+        if (limitReached) {
+            $btn.attr('title', '当前仅支持单条库映射关系');
+        } else {
+            $btn.removeAttr('title');
+        }
     }
 
     function updateWorkspaceEmptyState() {
@@ -1339,6 +1357,9 @@
             + '</div></div>'
             + '<div class="mb-4">'
             + '<h5 class="text-sm font-medium mb-3"><span class="text-primary">2.</span> 指定目标库</h5>'
+            + '<p class="text-warning text-sm mb-3">'
+            + '<i class="fa fa-info-circle"></i> 暂时不支持异构类型(正在开发中)'
+            + '</p>'
             + '<div class="border border-dashed rounded-lg p-4 bg-secondary">'
             + '<div class="grid grid-cols-2">'
             + buildPickerFormField(

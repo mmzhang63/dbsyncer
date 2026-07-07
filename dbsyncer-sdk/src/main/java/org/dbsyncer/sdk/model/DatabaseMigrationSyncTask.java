@@ -21,11 +21,6 @@ import java.util.stream.Collectors;
 public class DatabaseMigrationSyncTask extends CommonTask {
 
     /**
-     * TableGroup.mappingId 分隔符：{taskId}#{databaseMappingIndex}
-     */
-    public static final String TABLE_GROUP_MAPPING_ID_SEPARATOR = "@";
-
-    /**
      * 库映射列表（源/目标连接器 ID 配置在每条 {@link DatabaseMapping} 上）
      */
     private List<DatabaseMapping> databaseMappings;
@@ -100,35 +95,6 @@ public class DatabaseMigrationSyncTask extends CommonTask {
         return databaseMappings.stream()
                 .sorted(Comparator.comparingInt(DatabaseMapping::getIndex))
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * 库映射对应的 TableGroup 存储键：按「任务 ID + 库映射 index」分库隔离。
-     */
-    public static String toTableGroupMappingId(String taskId, int databaseMappingIndex) {
-        return taskId + TABLE_GROUP_MAPPING_ID_SEPARATOR + databaseMappingIndex;
-    }
-
-    public String toTableGroupMappingId(int databaseMappingIndex) {
-        return toTableGroupMappingId(getId(), databaseMappingIndex);
-    }
-
-    /**
-     * 从 TableGroup.mappingId 解析库映射 index。
-     */
-    public static Integer parseDatabaseMappingIndex(String taskId, String tableGroupMappingId) {
-        if (taskId == null || tableGroupMappingId == null) {
-            return null;
-        }
-        String prefix = taskId + TABLE_GROUP_MAPPING_ID_SEPARATOR;
-        if (!tableGroupMappingId.startsWith(prefix)) {
-            return null;
-        }
-        try {
-            return Integer.parseInt(tableGroupMappingId.substring(prefix.length()).trim());
-        } catch (NumberFormatException e) {
-            return null;
-        }
     }
 
     public boolean isEnableCopySchema() {

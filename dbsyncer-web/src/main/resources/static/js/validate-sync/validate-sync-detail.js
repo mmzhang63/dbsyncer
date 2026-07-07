@@ -293,7 +293,7 @@
             var body = '';
             var confirmType = 'primary';
             if (hasDelete && !hasUpsert) {
-                title = '确定删除目标多余？';
+                title = '确定反向订正？';
                 body = '将删除目标库中源库不存在的记录，此操作不可恢复，请确认源库为权威基准。';
                 confirmType = 'danger';
             } else if (hasDelete && hasUpsert) {
