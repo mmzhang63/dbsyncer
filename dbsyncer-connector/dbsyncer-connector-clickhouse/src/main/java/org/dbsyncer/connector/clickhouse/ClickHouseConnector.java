@@ -3,11 +3,13 @@
  */
 package org.dbsyncer.connector.clickhouse;
 
+import org.dbsyncer.common.model.Result;
 import org.dbsyncer.common.util.CollectionUtils;
 import org.dbsyncer.common.util.StringUtil;
 import org.dbsyncer.connector.clickhouse.cdc.ClickHouseListener;
 import org.dbsyncer.connector.clickhouse.schema.ClickHouseSchemaResolver;
 import org.dbsyncer.connector.clickhouse.validator.ClickHouseConfigValidator;
+import org.dbsyncer.sdk.SdkException;
 import org.dbsyncer.sdk.config.DatabaseConfig;
 import org.dbsyncer.sdk.config.SqlBuilderConfig;
 import org.dbsyncer.sdk.connector.ConfigValidator;
@@ -16,6 +18,7 @@ import org.dbsyncer.sdk.connector.ConnectorServiceContext;
 import org.dbsyncer.sdk.connector.database.AbstractDatabaseConnector;
 import org.dbsyncer.sdk.connector.database.Database;
 import org.dbsyncer.sdk.connector.database.DatabaseConnectorInstance;
+import org.dbsyncer.sdk.constant.ConnectorConstant;
 import org.dbsyncer.sdk.constant.DatabaseConstant;
 import org.dbsyncer.sdk.enums.ListenerTypeEnum;
 import org.dbsyncer.sdk.enums.TableTypeEnum;
@@ -26,8 +29,10 @@ import org.dbsyncer.sdk.model.MetaInfo;
 import org.dbsyncer.sdk.model.PageSql;
 import org.dbsyncer.sdk.model.Table;
 import org.dbsyncer.sdk.model.ValidateSyncTask;
+import org.dbsyncer.sdk.plugin.PluginContext;
 import org.dbsyncer.sdk.plugin.ReaderContext;
 import org.dbsyncer.sdk.schema.SchemaResolver;
+import org.dbsyncer.sdk.util.PrimaryKeyUtil;
 
 import java.sql.Connection;
 import java.sql.Types;
@@ -91,6 +96,37 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
     @Override
     protected boolean useJdbcTransaction() {
         return false;
+    }
+
+    @Override
+    public Result writer(DatabaseConnectorInstance connectorInstance, PluginContext context) {
+        if (!context.isForceUpdate() || isDelete(context.getEvent())) {
+            return super.writer(connectorInstance, context);
+        }
+        // ClickHouse 不支持 UPSERT 覆盖更新：改为先按主键删除，再执行插入。
+        deleteByPrimaryKey(connectorInstance, context);
+        return super.writer(connectorInstance, context);
+    }
+
+    private void deleteByPrimaryKey(DatabaseConnectorInstance connectorInstance, PluginContext context) {
+        List<Field> targetFields = context.getTargetFields();
+        List<Map> targetRows = context.getTargetList();
+        List<Field> primaryKeyFields = PrimaryKeyUtil.findExistPrimaryKeyFields(targetFields);
+        if (CollectionUtils.isEmpty(primaryKeyFields)) {
+            throw new SdkException("覆盖更新时主键字段不能为空.");
+        }
+        String deleteSql = context.getCommand().get(ConnectorConstant.OPERTION_DELETE);
+        if (StringUtil.isBlank(deleteSql)) {
+            throw new SdkException("覆盖更新时删除SQL不能为空.");
+        }
+        try {
+            connectorInstance.execute(databaseTemplate -> {
+                batchUpdate(databaseTemplate, deleteSql, primaryKeyFields, targetRows);
+                return null;
+            });
+        } catch (Exception e) {
+            throw new SdkException("覆盖更新删除旧数据失败: " + e.getMessage());
+        }
     }
 
     @Override

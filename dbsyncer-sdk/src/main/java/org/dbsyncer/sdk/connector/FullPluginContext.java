@@ -16,7 +16,7 @@ public final class FullPluginContext extends AbstractPluginContext implements Cu
 
     private boolean targetConnector = false;
 
-    //
+    //指定查询命令
     private String commandKey;
 
     @Override

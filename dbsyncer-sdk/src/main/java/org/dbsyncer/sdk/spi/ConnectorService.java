@@ -103,11 +103,6 @@ public interface ConnectorService<I extends ConnectorInstance, C extends Connect
     long getCount(I connectorInstance, MetaContext metaContext);
 
     /**
-     * 分页获取数据源数据
-     */
-//    Result reader(I connectorInstance, ReaderContext context);
-
-    /**
      * 业务自定义查
      *
      * @return

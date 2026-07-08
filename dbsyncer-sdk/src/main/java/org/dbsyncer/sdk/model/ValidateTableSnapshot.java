@@ -23,11 +23,6 @@ public class ValidateTableSnapshot implements Serializable {
     /** 正向扫描是否完成，见 {@link ValidateTaskStatusEnum} */
     private int sourceScanDone;
 
-    public ValidateTableSnapshot(long cursor, int status) {
-        this.cursor = cursor;
-        this.status = status;
-        this.sourceScanDone = ValidateTaskStatusEnum.PENDING.getCode();
-    }
 
     public ValidateTableSnapshot(long cursor, ValidateTaskStatusEnum status) {
         this.cursor = cursor;

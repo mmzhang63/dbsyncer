@@ -12,7 +12,7 @@ import org.dbsyncer.sdk.model.DatabaseMigrationDetailResult;
 import org.dbsyncer.sdk.model.DatabaseMigrationSyncTask;
 import org.dbsyncer.sdk.model.ValidateSyncDetailResult;
 import org.dbsyncer.sdk.model.ValidateSyncTask;
-import org.dbsyncer.sdk.spi.DatabaseSyncerDetailService;
+import org.dbsyncer.sdk.spi.DatabaseSyncDetailService;
 import org.dbsyncer.sdk.spi.ServiceFactory;
 import org.dbsyncer.sdk.spi.TableGroupBufferActuatorService;
 import org.dbsyncer.sdk.spi.TaskService;
@@ -110,12 +110,12 @@ public class ParserSupportConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @DependsOn(value = "serviceFactory")
-    public DatabaseSyncerDetailService dataBaseSyncerDetailService() {
-        DatabaseSyncerDetailService service = serviceFactory.get(DatabaseSyncerDetailService.class);
+    public DatabaseSyncDetailService dataBaseSyncerDetailService() {
+        DatabaseSyncDetailService service = serviceFactory.get(DatabaseSyncDetailService.class);
         if (service != null) {
             return service;
         }
-        return new DatabaseSyncerDetailService() {
+        return new DatabaseSyncDetailService() {
             @Override
             public void saveResult(DatabaseMigrationSyncTask task, DatabaseMigrationDetailResult detail) {
 

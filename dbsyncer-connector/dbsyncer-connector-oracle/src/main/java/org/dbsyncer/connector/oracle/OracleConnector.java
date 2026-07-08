@@ -227,14 +227,6 @@ public final class OracleConnector extends AbstractDatabaseConnector {
         return owner == null ? StringUtil.EMPTY : owner.trim().toUpperCase(Locale.ROOT);
     }
 
-//    private static String trimIdentifier(String name) {
-//        return name == null ? StringUtil.EMPTY : name.trim();
-//    }
-//
-//    private static String escapeSqlLiteral(String value) {
-//        return escapeForExecuteImmediate(value);
-//    }
-
     private void applySessionSchema(DatabaseTemplate databaseTemplate, String schema) {
         if (StringUtil.isBlank(schema)) {
             return;

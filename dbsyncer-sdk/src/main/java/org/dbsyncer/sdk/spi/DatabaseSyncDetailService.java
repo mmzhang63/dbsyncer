@@ -14,7 +14,7 @@ import org.dbsyncer.sdk.model.DatabaseMigrationSyncTask;
  * @version 1.0.0
  * @date 2026-05-29 13:46
  */
-public interface DatabaseSyncerDetailService {
+public interface DatabaseSyncDetailService {
 
     /**
      * 保存单表单阶段终态结果（按 taskId + type + tableIndex 先删后插）。
