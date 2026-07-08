@@ -3,7 +3,7 @@
  */
 package org.dbsyncer.sdk.model;
 
-import org.dbsyncer.sdk.enums.ValidateTableSnapshotStatusEnum;
+import org.dbsyncer.sdk.enums.ValidateTaskStatusEnum;
 
 import java.io.Serializable;
 
@@ -17,22 +17,22 @@ public class ValidateTableSnapshot implements Serializable {
     /** 正向扫描下一页页码 */
     private long cursor;
 
-    /** 表校验是否完成，见 {@link ValidateTableSnapshotStatusEnum} */
+    /** 表校验是否完成，见 {@link ValidateTaskStatusEnum} */
     private int status;
 
-    /** 正向扫描是否完成，见 {@link ValidateTableSnapshotStatusEnum} */
+    /** 正向扫描是否完成，见 {@link ValidateTaskStatusEnum} */
     private int sourceScanDone;
 
     public ValidateTableSnapshot(long cursor, int status) {
         this.cursor = cursor;
         this.status = status;
-        this.sourceScanDone = ValidateTableSnapshotStatusEnum.PENDING.getCode();
+        this.sourceScanDone = ValidateTaskStatusEnum.PENDING.getCode();
     }
 
-    public ValidateTableSnapshot(long cursor, ValidateTableSnapshotStatusEnum status) {
+    public ValidateTableSnapshot(long cursor, ValidateTaskStatusEnum status) {
         this.cursor = cursor;
-        this.status = status == null ? ValidateTableSnapshotStatusEnum.PENDING.getCode() : status.getCode();
-        this.sourceScanDone = ValidateTableSnapshotStatusEnum.PENDING.getCode();
+        this.status = status == null ? ValidateTaskStatusEnum.PENDING.getCode() : status.getCode();
+        this.sourceScanDone = ValidateTaskStatusEnum.PENDING.getCode();
     }
 
     public long getCursor() {
@@ -51,12 +51,12 @@ public class ValidateTableSnapshot implements Serializable {
         this.status = status;
     }
 
-    public void setStatus(ValidateTableSnapshotStatusEnum status) {
-        this.status = status == null ? ValidateTableSnapshotStatusEnum.PENDING.getCode() : status.getCode();
+    public void setStatus(ValidateTaskStatusEnum status) {
+        this.status = status == null ? ValidateTaskStatusEnum.PENDING.getCode() : status.getCode();
     }
 
-    public ValidateTableSnapshotStatusEnum getStatusEnum() {
-        return ValidateTableSnapshotStatusEnum.ofCode(status);
+    public ValidateTaskStatusEnum getStatusEnum() {
+        return ValidateTaskStatusEnum.ofCode(status);
     }
 
     public int getSourceScanDone() {
@@ -67,14 +67,14 @@ public class ValidateTableSnapshot implements Serializable {
         this.sourceScanDone = sourceScanDone;
     }
 
-    public void setSourceScanDone(ValidateTableSnapshotStatusEnum sourceScanDone) {
+    public void setSourceScanDone(ValidateTaskStatusEnum sourceScanDone) {
         this.sourceScanDone = sourceScanDone == null
-                ? ValidateTableSnapshotStatusEnum.PENDING.getCode()
+                ? ValidateTaskStatusEnum.PENDING.getCode()
                 : sourceScanDone.getCode();
     }
 
-    public ValidateTableSnapshotStatusEnum getSourceScanDoneEnum() {
-        return ValidateTableSnapshotStatusEnum.ofCode(sourceScanDone);
+    public ValidateTaskStatusEnum getSourceScanDoneEnum() {
+        return ValidateTaskStatusEnum.ofCode(sourceScanDone);
     }
 
 }

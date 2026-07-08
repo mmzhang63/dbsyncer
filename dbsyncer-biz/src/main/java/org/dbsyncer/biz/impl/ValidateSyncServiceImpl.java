@@ -34,9 +34,13 @@ import org.dbsyncer.sdk.enums.FilterEnum;
 import org.dbsyncer.sdk.enums.SortEnum;
 import org.dbsyncer.sdk.enums.StorageEnum;
 import org.dbsyncer.sdk.enums.TableTypeEnum;
-import org.dbsyncer.sdk.enums.ValidateTableSnapshotStatusEnum;
+import org.dbsyncer.sdk.enums.ValidateTaskStatusEnum;
 import org.dbsyncer.sdk.filter.Query;
-import org.dbsyncer.sdk.model.*;
+import org.dbsyncer.sdk.model.CommonTask;
+import org.dbsyncer.sdk.model.Field;
+import org.dbsyncer.sdk.model.Filter;
+import org.dbsyncer.sdk.model.Table;
+import org.dbsyncer.sdk.model.ValidateSyncTask;
 import org.dbsyncer.sdk.spi.TaskService;
 import org.dbsyncer.sdk.spi.ValidateSyncDetailService;
 import org.dbsyncer.sdk.storage.StorageService;
@@ -49,7 +53,19 @@ import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -660,7 +676,7 @@ public class ValidateSyncServiceImpl implements ValidateSyncService {
                 .min(Comparator.naturalOrder())
                 .orElse(0);
         long doneCount = task.getTableSnapshots().values().stream()
-                .filter(snapshot -> snapshot != null && ValidateTableSnapshotStatusEnum.isDone(snapshot.getStatus()))
+                .filter(snapshot -> snapshot != null && ValidateTaskStatusEnum.isDone(snapshot.getStatus()))
                 .count();
         long completed = Math.max(0, minIndex - 1L) + doneCount;
         if (completed > totalSize) {
