@@ -411,6 +411,7 @@ public final class ElasticsearchConnector extends AbstractConnector implements C
         Map<String, String> command = new HashMap<>();
         // 查询字段
         Table table = commandConfig.getTable();
+        command.put(_SOURCE_INDEX, table.getName());
         command.put(ConnectorConstant.OPERTION_QUERY_COUNT, table.getName());
         command.put(ConnectorConstant.OPERTION_QUERY_SOURCE_IN, table.getName());
         List<Field> column = table.getColumn();
@@ -436,6 +437,7 @@ public final class ElasticsearchConnector extends AbstractConnector implements C
         if (type != null) {
             command.put(_TYPE, String.valueOf(type));
         }
+        command.put(_TARGET_INDEX, table.getName());
         command.put(ConnectorConstant.TARGET_QUERY_COUNT, table.getName());
         command.put(ConnectorConstant.OPERTION_QUERY_TARGET_IN, table.getName());
         List<Field> column = table.getColumn();
