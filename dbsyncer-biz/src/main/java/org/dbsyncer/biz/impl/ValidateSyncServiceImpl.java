@@ -34,6 +34,7 @@ import org.dbsyncer.sdk.enums.FilterEnum;
 import org.dbsyncer.sdk.enums.SortEnum;
 import org.dbsyncer.sdk.enums.StorageEnum;
 import org.dbsyncer.sdk.enums.TableTypeEnum;
+import org.dbsyncer.sdk.enums.ValidateTableSnapshotStatusEnum;
 import org.dbsyncer.sdk.filter.Query;
 import org.dbsyncer.sdk.model.*;
 import org.dbsyncer.sdk.spi.TaskService;
@@ -659,7 +660,7 @@ public class ValidateSyncServiceImpl implements ValidateSyncService {
                 .min(Comparator.naturalOrder())
                 .orElse(0);
         long doneCount = task.getTableSnapshots().values().stream()
-                .filter(snapshot -> snapshot != null && snapshot.getStatus() == 1)
+                .filter(snapshot -> snapshot != null && ValidateTableSnapshotStatusEnum.isDone(snapshot.getStatus()))
                 .count();
         long completed = Math.max(0, minIndex - 1L) + doneCount;
         if (completed > totalSize) {
