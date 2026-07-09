@@ -100,7 +100,7 @@ public class ConnectorServiceImpl extends BaseServiceImpl implements ConnectorSe
     public String remove(String id) {
         List<Mapping> mappingAll = profileComponent.getMappingAll();
         if (!CollectionUtils.isEmpty(mappingAll)) {
-            mappingAll.forEach(mapping-> {
+            mappingAll.forEach(mapping -> {
                 if (StringUtil.equals(mapping.getSourceConnectorId(), id) || StringUtil.equals(mapping.getTargetConnectorId(), id)) {
                     String error = String.format("驱动“%s”正在使用，请先删除", mapping.getName());
                     logger.error(error);
@@ -145,6 +145,7 @@ public class ConnectorServiceImpl extends BaseServiceImpl implements ConnectorSe
     public List<ConnectorVO> getConnectorAll() {
         return profileComponent.getConnectorAll().stream().map(this::convertConnector2Vo).sorted(Comparator.comparing(Connector::getUpdateTime).reversed()).collect(Collectors.toList());
     }
+
     @Override
     public List<ConnectorVO> getConnectorRelation() {
         return profileComponent.getConnectorAll().stream()
@@ -153,7 +154,6 @@ public class ConnectorServiceImpl extends BaseServiceImpl implements ConnectorSe
                 .sorted(Comparator.comparing(Connector::getUpdateTime).reversed())
                 .collect(Collectors.toList());
     }
-
 
     @Override
     public Paging<ConnectorVO> search(Map<String, String> params) {
@@ -179,7 +179,7 @@ public class ConnectorServiceImpl extends BaseServiceImpl implements ConnectorSe
 
         // 更新连接器状态
         Set<String> exist = new HashSet<>();
-        list.forEach(c-> {
+        list.forEach(c -> {
             health.put(c.getId(), isAlive(c.getId(), c.getConfig()));
             exist.add(c.getId());
         });
@@ -231,7 +231,7 @@ public class ConnectorServiceImpl extends BaseServiceImpl implements ConnectorSe
             org.dbsyncer.sdk.spi.ConnectorService connectorService = connectorFactory.getConnectorService(connector.getConfig().getConnectorType());
             return connectorService instanceof AbstractDatabaseConnector;
         } catch (Exception e) {
-            logger.warn("过滤关系型连接器失败, connectorId={}, type={}",connector.getId(), connector.getConfig().getConnectorType(), e);
+            logger.warn("过滤关系型连接器失败, connectorId={}, type={}", connector.getId(), connector.getConfig().getConnectorType(), e);
             return false;
         }
     }
