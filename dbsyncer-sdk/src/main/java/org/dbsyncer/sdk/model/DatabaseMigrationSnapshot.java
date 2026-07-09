@@ -3,13 +3,13 @@
  */
 package org.dbsyncer.sdk.model;
 
-import org.dbsyncer.sdk.enums.MigrationStepStatusEnum;
+import org.dbsyncer.sdk.enums.CommonTaskStepStatusEnum;
 
 import java.io.Serializable;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 库级迁移快照（按 {@link DatabaseMapping#index} 索引）。
+ * 库级迁移快照（按 {@link DatabaseMapping} 索引）。
  * <p>库流水线状态见 {@link #status}；其下 {@link #tables} 按表映射 index 记录结构/数据阶段与行级游标。</p>
  *
  * @author wuji
@@ -20,34 +20,13 @@ public class DatabaseMigrationSnapshot implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    /** 预留游标，与订正校验快照字段对齐 */
-    private long cursor;
-
-    /** 库映射流水线状态，见 {@link MigrationStepStatusEnum} */
+    /** 库映射流水线状态，见 {@link CommonTaskStepStatusEnum} */
     private int status;
 
     /** 表级快照：key = 表映射 index（库内唯一） */
     private final ConcurrentHashMap<Integer, DatabaseMigrationTableSnapshot> tables = new ConcurrentHashMap<>();
 
     public DatabaseMigrationSnapshot() {
-    }
-
-    public DatabaseMigrationSnapshot(long cursor, int status) {
-        this.cursor = cursor;
-        this.status = status;
-    }
-
-    public DatabaseMigrationSnapshot(long cursor, MigrationStepStatusEnum status) {
-        this.cursor = cursor;
-        this.status = status == null ? MigrationStepStatusEnum.PENDING.getCode() : status.getCode();
-    }
-
-    public long getCursor() {
-        return cursor;
-    }
-
-    public void setCursor(long cursor) {
-        this.cursor = cursor;
     }
 
     public int getStatus() {
@@ -58,12 +37,12 @@ public class DatabaseMigrationSnapshot implements Serializable {
         this.status = status;
     }
 
-    public void setStatus(MigrationStepStatusEnum status) {
-        this.status = status == null ? MigrationStepStatusEnum.PENDING.getCode() : status.getCode();
+    public void setStatus(CommonTaskStepStatusEnum status) {
+        this.status = status == null ? CommonTaskStepStatusEnum.PENDING.getCode() : status.getCode();
     }
 
-    public MigrationStepStatusEnum getStatusEnum() {
-        return MigrationStepStatusEnum.ofCode(status);
+    public CommonTaskStepStatusEnum getStatusEnum() {
+        return CommonTaskStepStatusEnum.ofCode(status);
     }
 
     public ConcurrentHashMap<Integer, DatabaseMigrationTableSnapshot> getTables() {
@@ -72,14 +51,5 @@ public class DatabaseMigrationSnapshot implements Serializable {
 
     public DatabaseMigrationTableSnapshot getTable(int tableIndex) {
         return tables.get(tableIndex);
-    }
-
-    public DatabaseMigrationTableSnapshot getOrCreateTable(int tableIndex) {
-        return tables.computeIfAbsent(tableIndex, key -> DatabaseMigrationTableSnapshot.createInitial(true, true));
-    }
-
-    public DatabaseMigrationTableSnapshot getOrCreateTable(int tableIndex, boolean enableCopySchema, boolean enableCopyData) {
-        return tables.computeIfAbsent(tableIndex,
-                key -> DatabaseMigrationTableSnapshot.createInitial(enableCopySchema, enableCopyData));
     }
 }

@@ -109,7 +109,7 @@ public class ValidateSyncTask extends CommonTask {
     private Integer processed = 0;
 
     //表执行快照
-    private final ConcurrentHashMap<Integer, ValidateTableSnapshot> tableSnapshots = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Integer, CommonTaskSnapshot> tableSnapshots = new ConcurrentHashMap<>();
 
     public String getSourceConnectorId() {
         return sourceConnectorId;
@@ -303,11 +303,11 @@ public class ValidateSyncTask extends CommonTask {
         this.processed = processed;
     }
 
-    public ConcurrentHashMap<Integer, ValidateTableSnapshot> getTableSnapshots() {
+    public ConcurrentHashMap<Integer, CommonTaskSnapshot> getTableSnapshots() {
         return tableSnapshots;
     }
 
-    public void addTableSnapshots(Integer index, ValidateTableSnapshot tableSnapshots) {
+    public void addTableSnapshots(Integer index, CommonTaskSnapshot tableSnapshots) {
         this.tableSnapshots.put(index, tableSnapshots);
     }
 }

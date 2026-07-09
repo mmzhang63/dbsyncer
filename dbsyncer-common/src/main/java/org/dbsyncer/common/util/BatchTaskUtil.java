@@ -54,11 +54,11 @@ public abstract class BatchTaskUtil {
     /**
      * 并行处理列表数据
      *
-     * @param dataList 数据列表
-     * @param processor 数据处理函数
+     * @param dataList       数据列表
+     * @param processor      数据处理函数
      * @param threadPoolSize 线程池大小
-     * @param <T> 数据类型
-     * @param <R> 结果类型
+     * @param <T>            数据类型
+     * @param <R>            结果类型
      * @return 处理结果列表
      */
     public static <T, R> List<R> submit(Collection<T> dataList, Processor<T, R> processor, int threadPoolSize, Logger logger) {
@@ -73,7 +73,7 @@ public abstract class BatchTaskUtil {
         try {
             // 提交所有任务
             for (T data : dataList) {
-                futures.add(executor.submit(()-> {
+                futures.add(executor.submit(() -> {
                     try {
                         return processor.process(data);
                     } catch (Throwable e) {
@@ -267,20 +267,28 @@ public abstract class BatchTaskUtil {
         }
         ExecutorService executor = Executors.newFixedThreadPool(threadNum);
         try {
-            int total = rows.size();
-            int taskCount = (total + batchSize - 1) / batchSize;
-            for (int i = 0; i < taskCount; ++i) {
-                int start = i * batchSize;
-                List<T> slice = rows.stream().skip(start).limit(batchSize).collect(Collectors.toList());
-                try {
-                    function.execute(slice, executor);
-                } catch (Throwable e) {
-                    logger.error("任务执行异常", e);
-                }
-            }
+            executeBySlice(rows,batchSize,executor,function,logger);
         } finally {
             executor.shutdownNow();
         }
+    }
+
+    public static <T> void executeBySlice(List<T> rows, int batchSize, ExecutorService executor, Function<T> function, Logger logger) {
+        if (CollectionUtils.isEmpty(rows)) {
+            return;
+        }
+        int total = rows.size();
+        int taskCount = (total + batchSize - 1) / batchSize;
+        for (int i = 0; i < taskCount; ++i) {
+            int start = i * batchSize;
+            List<T> slice = rows.stream().skip(start).limit(batchSize).collect(Collectors.toList());
+            try {
+                function.execute(slice, executor);
+            } catch (Throwable e) {
+                logger.error("任务执行异常", e);
+            }
+        }
+
     }
 
     @FunctionalInterface

@@ -3,21 +3,63 @@
  */
 package org.dbsyncer.sdk.model;
 
-import org.dbsyncer.sdk.enums.MigrationStepStatusEnum;
-import org.dbsyncer.sdk.enums.MigrationTableStepEnum;
+import org.dbsyncer.sdk.enums.CommonTaskStepStatusEnum;
+import org.dbsyncer.sdk.enums.DatabaseMigrationDetailTypeEnum;
+
+import java.io.Serializable;
 
 /**
+ * 通用任务表级快照：step 在迁移场景为 {@link DatabaseMigrationDetailTypeEnum}，
+ * 在校验场景为正向扫描状态码（见 {@link CommonTaskStepStatusEnum}）。
+ *
  * @author wuji
  * @version 1.0.0
  * @date 2026-07-09 10:37
  */
-public class CommonTaskSnapshot {
-    /** 当前迁移阶段，见 {@link MigrationTableStepEnum} */
-    private int step;
+public class CommonTaskSnapshot implements Serializable {
 
-    /** 当前阶段状态，见 {@link MigrationStepStatusEnum} */
+    private static final long serialVersionUID = 1L;
+
+    /** 当前阶段编码 */
+    private String step;
+
+    /** 当前阶段状态，见 {@link CommonTaskStepStatusEnum} */
     private int status;
 
     /** 数据迁移分页游标 */
     private String cursor;
+
+    private long pageIndex;
+
+    public String getStep() {
+        return step;
+    }
+
+    public void setStep(String step) {
+        this.step = step;
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        this.status = status;
+    }
+
+    public String getCursor() {
+        return cursor;
+    }
+
+    public void setCursor(String cursor) {
+        this.cursor = cursor;
+    }
+
+    public long getPageIndex() {
+        return pageIndex;
+    }
+
+    public void setPageIndex(long pageIndex) {
+        this.pageIndex = pageIndex;
+    }
 }

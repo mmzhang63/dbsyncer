@@ -4,7 +4,8 @@
 package org.dbsyncer.sdk.model;
 
 import org.dbsyncer.common.util.CollectionUtils;
-import org.dbsyncer.sdk.enums.MigrationStepStatusEnum;
+import org.dbsyncer.sdk.enums.CommonTaskStepStatusEnum;
+import org.dbsyncer.sdk.enums.DatabaseMigrationDetailTypeEnum;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -73,7 +74,7 @@ public final class DatabaseMigrationProgressComputer {
         if (CollectionUtils.isEmpty(snapshots)) {
             return 0;
         }
-        return snapshots.values().stream().filter(s -> s != null && MigrationStepStatusEnum.isDone(s.getStatus())).count();
+        return snapshots.values().stream().filter(s -> s != null && CommonTaskStepStatusEnum.isDone(s.getStatus())).count();
     }
 
     /**
@@ -93,10 +94,12 @@ public final class DatabaseMigrationProgressComputer {
                 if (tableSnapshot == null) {
                     continue;
                 }
-                if (task.isEnableCopySchema() && tableSnapshot.isSchemaPhaseDone()) {
+                if (task.isEnableCopySchema()
+                        && DatabaseMigrationDetailTypeEnum.isSchemaPhaseDone(tableSnapshot.getStep(), tableSnapshot.getStatus())) {
                     count++;
                 }
-                if (task.isEnableCopyData() && tableSnapshot.isDataPhaseDone()) {
+                if (task.isEnableCopyData()
+                        && DatabaseMigrationDetailTypeEnum.isDataPhaseDone(tableSnapshot.getStep(), tableSnapshot.getStatus())) {
                     count++;
                 }
             }
