@@ -57,5 +57,4 @@ public final class ClickHouseTimestampType extends TimestampType {
         }
         return throwUnsupportedException(val, field);
     }
-
 }

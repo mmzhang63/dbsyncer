@@ -53,5 +53,4 @@ public final class ClickHouseDateType extends DateType {
 
         return throwUnsupportedException(val, field);
     }
-
 }

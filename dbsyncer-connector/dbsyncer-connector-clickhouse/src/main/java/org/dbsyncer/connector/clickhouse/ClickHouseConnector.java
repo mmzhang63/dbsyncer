@@ -336,7 +336,6 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
 
     @Override
     public String getPageCursorSql(PageSql config) {
-
         StringBuilder sql = new StringBuilder(config.getQuerySql());
         buildCursorConditionAndOrderBy(sql, config);
         sql.append(DatabaseConstant.CLICKHOUSE_PAGE_SQL);
