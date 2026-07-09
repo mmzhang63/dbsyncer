@@ -3,8 +3,6 @@
  */
 package org.dbsyncer.sdk.enums;
 
-import org.dbsyncer.sdk.model.CommonTaskSnapshot;
-
 /**
  * 通用任务子步状态（整库迁移 / 订正校验等快照共用）。
  *
@@ -55,40 +53,5 @@ public enum CommonTaskStepStatusEnum {
             }
         }
         return null;
-    }
-
-    /**
-     * 创建订正校验表快照：pageIndex 为续跑页码，status 为表级状态，step 记录正向扫描状态。
-     */
-    public static CommonTaskSnapshot createValidateSnapshot(long pageIndex) {
-        CommonTaskSnapshot snapshot = new CommonTaskSnapshot();
-        snapshot.setPageIndex(pageIndex);
-        snapshot.setStatus(PENDING.getCode());
-        snapshot.setStep(String.valueOf(PENDING.getCode()));
-        return snapshot;
-    }
-
-    /**
-     * 正向扫描是否已完成。
-     */
-    public static boolean isForwardScanDone(CommonTaskSnapshot snapshot) {
-        if (snapshot == null || snapshot.getStep() == null) {
-            return false;
-        }
-        try {
-            return isDone(Integer.parseInt(snapshot.getStep()));
-        } catch (NumberFormatException ignored) {
-            return false;
-        }
-    }
-
-    /**
-     * 标记正向扫描已完成。
-     */
-    public static void markForwardScanDone(CommonTaskSnapshot snapshot) {
-        if (snapshot == null) {
-            return;
-        }
-        snapshot.setStep(String.valueOf(DONE.getCode()));
     }
 }

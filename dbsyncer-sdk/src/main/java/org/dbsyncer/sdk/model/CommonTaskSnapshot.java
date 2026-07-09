@@ -10,7 +10,7 @@ import java.io.Serializable;
 
 /**
  * 通用任务表级快照：step 在迁移场景为 {@link DatabaseMigrationDetailTypeEnum}，
- * 在校验场景为正向扫描状态码（见 {@link CommonTaskStepStatusEnum}）。
+ * 在校验场景为 {@link org.dbsyncer.sdk.enums.ValidateSyncStepEnum}。
  *
  * @author wuji
  * @version 1.0.0

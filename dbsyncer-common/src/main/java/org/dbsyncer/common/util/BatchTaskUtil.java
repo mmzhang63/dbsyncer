@@ -211,56 +211,6 @@ public abstract class BatchTaskUtil {
         }
     }
 
-    /**
-     * 将列表按 batchSize 切片，使用外部线程池并发处理各分片并合并结果。
-     *
-     * @param rows         全量数据
-     * @param batchSize    分片大小
-     * @param executor     外部线程池（由调用方创建与关闭）
-     * @param sliceHandler 单片处理函数
-     * @param logger       日志记录器
-     * @param <T>          元素类型
-     * @param <R>          分片结果类型
-     * @return 合并后的结果列表
-     */
-//    public static <T, R> List<R> executeBySlice(List<T> rows, int batchSize, ExecutorService executor,
-//                                                Function<List<T>, List<R>> sliceHandler, Logger logger) {
-//        if (CollectionUtils.isEmpty(rows)) {
-//            return Collections.emptyList();
-//        }
-//        int total = rows.size();
-//        List<R> results = new CopyOnWriteArrayList<>();
-//        int taskCount = (total + batchSize - 1) / batchSize;
-//        CountDownLatch latch = new CountDownLatch(taskCount);
-//        for (int i = 0; i < taskCount; i++) {
-//            int start = i * batchSize;
-//            executor.execute(() -> {
-//                try {
-//                    List<T> slice = rows.stream()
-//                            .skip(start)
-//                            .limit(batchSize)
-//                            .collect(Collectors.toList());
-//                    List<R> sliceResults = sliceHandler.apply(slice);
-//                    if (sliceResults != null && !sliceResults.isEmpty()) {
-//                        results.addAll(sliceResults);
-//                    }
-//                } catch (Exception e) {
-//                    logger.error("分片执行异常", e);
-//                } finally {
-//                    latch.countDown();
-//                }
-//            });
-//        }
-//        try {
-//            if (!latch.await(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-//                logger.warn("分片执行超时");
-//            }
-//        } catch (InterruptedException e) {
-//            logger.error("分片执行被中断", e);
-//            Thread.currentThread().interrupt();
-//        }
-//        return results;
-//    }
     public static <T> void executeBySlice(List<T> rows, int batchSize, int threadNum, Function<T> function, Logger logger) {
         if (CollectionUtils.isEmpty(rows)) {
             return;
