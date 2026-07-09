@@ -17,7 +17,7 @@ import java.io.Serializable;
  * @version 1.0.0
  * @date 2026-05-29 11:30
  */
-public class DatabaseMigrationTableSnapshot implements Serializable {
+public class DatabaseMigrationTableSnapshot extends CommonTaskSnapshot implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -27,8 +27,10 @@ public class DatabaseMigrationTableSnapshot implements Serializable {
     /** 当前阶段状态，见 {@link MigrationStepStatusEnum} */
     private int status;
 
-    /** 数据迁移分页游标（页码，从 1 开始） */
-    private long dataCursor;
+    /** 数据迁移分页游标 */
+    private String cursor;
+
+    private long pageIndex;
 
     private long successTotal;
 
@@ -37,10 +39,9 @@ public class DatabaseMigrationTableSnapshot implements Serializable {
     public DatabaseMigrationTableSnapshot() {
     }
 
-    public DatabaseMigrationTableSnapshot(int step, int status, long dataCursor) {
+    public DatabaseMigrationTableSnapshot(int step, int status) {
         this.step = step;
         this.status = status;
-        this.dataCursor = dataCursor;
     }
 
     /**
@@ -50,13 +51,11 @@ public class DatabaseMigrationTableSnapshot implements Serializable {
         if (!enableCopySchema && enableCopyData) {
             return new DatabaseMigrationTableSnapshot(
                     MigrationTableStepEnum.DATA.getCode(),
-                    MigrationStepStatusEnum.PENDING.getCode(),
-                    1L);
+                    MigrationStepStatusEnum.PENDING.getCode());
         }
         return new DatabaseMigrationTableSnapshot(
                 MigrationTableStepEnum.SCHEMA.getCode(),
-                MigrationStepStatusEnum.PENDING.getCode(),
-                1L);
+                MigrationStepStatusEnum.PENDING.getCode());
     }
 
     public int getStep() {
@@ -91,12 +90,20 @@ public class DatabaseMigrationTableSnapshot implements Serializable {
         return MigrationStepStatusEnum.ofCode(status);
     }
 
-    public long getDataCursor() {
-        return dataCursor;
+    public long getPageIndex() {
+        return pageIndex;
     }
 
-    public void setDataCursor(long dataCursor) {
-        this.dataCursor = dataCursor;
+    public void setPageIndex(long pageIndex) {
+        this.pageIndex = pageIndex;
+    }
+
+    public String getCursor() {
+        return cursor;
+    }
+
+    public void setCursor(String cursor) {
+        this.cursor = cursor;
     }
 
     public long getSuccessTotal() {
@@ -116,7 +123,7 @@ public class DatabaseMigrationTableSnapshot implements Serializable {
     }
 
     /**
-     * 结构阶段是否已结束（含跳过）；已进入数据阶段视为结构已完成。
+     * TODO 抽到枚举 结构阶段是否已结束（含跳过）；已进入数据阶段视为结构已完成。
      */
     public boolean isSchemaPhaseDone() {
         MigrationTableStepEnum currentStep = getStepEnum();
@@ -140,7 +147,6 @@ public class DatabaseMigrationTableSnapshot implements Serializable {
         if (advanceToData && schemaResult != null && MigrationStepStatusEnum.isDone(schemaResult.getCode())) {
             setStep(MigrationTableStepEnum.DATA);
             setStatus(MigrationStepStatusEnum.PENDING);
-            setDataCursor(1L);
             return;
         }
         setStep(MigrationTableStepEnum.SCHEMA);

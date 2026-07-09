@@ -3,7 +3,7 @@
  */
 package org.dbsyncer.sdk.model;
 
-import org.dbsyncer.sdk.enums.ValidateTaskStatusEnum;
+import org.dbsyncer.sdk.enums.ValidateSyncStatusEnum;
 
 import java.io.Serializable;
 
@@ -17,18 +17,13 @@ public class ValidateTableSnapshot implements Serializable {
     /** 正向扫描下一页页码 */
     private long cursor;
 
-    /** 表校验是否完成，见 {@link ValidateTaskStatusEnum} */
-    private int status;
+    /** 表校验是否完成，见 {@link ValidateSyncStatusEnum} */
+    private int status = ValidateSyncStatusEnum.PENDING.getCode();
 
-    /** 正向扫描是否完成，见 {@link ValidateTaskStatusEnum} */
-    private int sourceScanDone;
+    /** 正向扫描是否完成，见 {@link ValidateSyncStatusEnum} */
+    private int step = ValidateSyncStatusEnum.PENDING.getCode();
 
-
-    public ValidateTableSnapshot(long cursor, ValidateTaskStatusEnum status) {
-        this.cursor = cursor;
-        this.status = status == null ? ValidateTaskStatusEnum.PENDING.getCode() : status.getCode();
-        this.sourceScanDone = ValidateTaskStatusEnum.PENDING.getCode();
-    }
+    public ValidateTableSnapshot() {}
 
     public long getCursor() {
         return cursor;
@@ -46,30 +41,11 @@ public class ValidateTableSnapshot implements Serializable {
         this.status = status;
     }
 
-    public void setStatus(ValidateTaskStatusEnum status) {
-        this.status = status == null ? ValidateTaskStatusEnum.PENDING.getCode() : status.getCode();
+    public int getStep() {
+        return step;
     }
 
-    public ValidateTaskStatusEnum getStatusEnum() {
-        return ValidateTaskStatusEnum.ofCode(status);
+    public void setStep(int step) {
+        this.step = step;
     }
-
-    public int getSourceScanDone() {
-        return sourceScanDone;
-    }
-
-    public void setSourceScanDone(int sourceScanDone) {
-        this.sourceScanDone = sourceScanDone;
-    }
-
-    public void setSourceScanDone(ValidateTaskStatusEnum sourceScanDone) {
-        this.sourceScanDone = sourceScanDone == null
-                ? ValidateTaskStatusEnum.PENDING.getCode()
-                : sourceScanDone.getCode();
-    }
-
-    public ValidateTaskStatusEnum getSourceScanDoneEnum() {
-        return ValidateTaskStatusEnum.ofCode(sourceScanDone);
-    }
-
 }

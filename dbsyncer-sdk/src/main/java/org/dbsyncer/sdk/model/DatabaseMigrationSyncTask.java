@@ -58,7 +58,7 @@ public class DatabaseMigrationSyncTask extends CommonTask {
     private Long endTime;
 
     /**
-     * 执行快照：key = 库映射 index，value 含库流水线状态及下属表快照。
+     * 执行快照：key = 库映射 index，value 含库流水线状态及下属表快照。TODO fan序列后是HashMap
      */
     private final ConcurrentHashMap<Integer, DatabaseMigrationSnapshot> databaseSnapshots = new ConcurrentHashMap<>();
 

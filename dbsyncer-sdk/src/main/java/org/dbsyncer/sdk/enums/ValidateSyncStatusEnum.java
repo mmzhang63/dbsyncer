@@ -9,7 +9,7 @@ package org.dbsyncer.sdk.enums;
  * @author wuji
  * @version 1.0.0
  */
-public enum ValidateTaskStatusEnum {
+public enum ValidateSyncStatusEnum {
 
     /** 未完成 */
     PENDING(0, "待处理"),
@@ -19,7 +19,7 @@ public enum ValidateTaskStatusEnum {
     private final int code;
     private final String message;
 
-    ValidateTaskStatusEnum(int code, String message) {
+    ValidateSyncStatusEnum(int code, String message) {
         this.code = code;
         this.message = message;
     }
@@ -40,8 +40,8 @@ public enum ValidateTaskStatusEnum {
         return status == PENDING.code;
     }
 
-    public static ValidateTaskStatusEnum ofCode(int code) {
-        for (ValidateTaskStatusEnum value : values()) {
+    public static ValidateSyncStatusEnum ofCode(int code) {
+        for (ValidateSyncStatusEnum value : values()) {
             if (value.code == code) {
                 return value;
             }

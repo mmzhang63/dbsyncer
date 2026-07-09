@@ -7,8 +7,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -16,7 +14,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public abstract class BatchTaskUtil {
@@ -119,8 +116,8 @@ public abstract class BatchTaskUtil {
      *
      * @param dataList 数据列表
      * @param consumer 数据处理消费者
-     * @param logger 日志记录器
-     * @param <T> 数据类型
+     * @param logger   日志记录器
+     * @param <T>      数据类型
      */
     public static <T> void execute(Collection<T> dataList, Consumer<T> consumer, Logger logger) {
         if (CollectionUtils.isEmpty(dataList)) {
@@ -133,7 +130,7 @@ public abstract class BatchTaskUtil {
         try {
             // 提交所有任务
             for (T data : dataList) {
-                futures.add(executor.submit(()-> {
+                futures.add(executor.submit(() -> {
                     try {
                         consumer.accept(data);
                     } catch (Throwable e) {
@@ -171,8 +168,8 @@ public abstract class BatchTaskUtil {
      * @param executor 自定义线程池
      * @param dataList 数据列表
      * @param consumer 数据处理消费者
-     * @param logger 日志记录器
-     * @param <T> 数据类型
+     * @param logger   日志记录器
+     * @param <T>      数据类型
      */
     public static <T> void execute(ExecutorService executor, Collection<T> dataList, Consumer<T> consumer, Logger logger) {
         if (CollectionUtils.isEmpty(dataList)) {
@@ -182,7 +179,7 @@ public abstract class BatchTaskUtil {
         List<Future<?>> futures = new ArrayList<>();
         // 提交所有任务
         for (T data : dataList) {
-            futures.add(executor.submit(()-> {
+            futures.add(executor.submit(() -> {
                 try {
                     consumer.accept(data);
                 } catch (Throwable e) {
@@ -226,43 +223,100 @@ public abstract class BatchTaskUtil {
      * @param <R>          分片结果类型
      * @return 合并后的结果列表
      */
-    public static <T, R> List<R> executeBySlice(List<T> rows, int batchSize, ExecutorService executor,
-                                                Function<List<T>, List<R>> sliceHandler, Logger logger) {
+//    public static <T, R> List<R> executeBySlice(List<T> rows, int batchSize, ExecutorService executor,
+//                                                Function<List<T>, List<R>> sliceHandler, Logger logger) {
+//        if (CollectionUtils.isEmpty(rows)) {
+//            return Collections.emptyList();
+//        }
+//        int total = rows.size();
+//        List<R> results = new CopyOnWriteArrayList<>();
+//        int taskCount = (total + batchSize - 1) / batchSize;
+//        CountDownLatch latch = new CountDownLatch(taskCount);
+//        for (int i = 0; i < taskCount; i++) {
+//            int start = i * batchSize;
+//            executor.execute(() -> {
+//                try {
+//                    List<T> slice = rows.stream()
+//                            .skip(start)
+//                            .limit(batchSize)
+//                            .collect(Collectors.toList());
+//                    List<R> sliceResults = sliceHandler.apply(slice);
+//                    if (sliceResults != null && !sliceResults.isEmpty()) {
+//                        results.addAll(sliceResults);
+//                    }
+//                } catch (Exception e) {
+//                    logger.error("分片执行异常", e);
+//                } finally {
+//                    latch.countDown();
+//                }
+//            });
+//        }
+//        try {
+//            if (!latch.await(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+//                logger.warn("分片执行超时");
+//            }
+//        } catch (InterruptedException e) {
+//            logger.error("分片执行被中断", e);
+//            Thread.currentThread().interrupt();
+//        }
+//        return results;
+//    }
+    public static <T> void executeBySlice(List<T> rows, int batchSize, int threadNum, Function<T> function, Logger logger) {
         if (CollectionUtils.isEmpty(rows)) {
-            return Collections.emptyList();
+            return;
         }
-        int total = rows.size();
-        List<R> results = new CopyOnWriteArrayList<>();
-        int taskCount = (total + batchSize - 1) / batchSize;
-        CountDownLatch latch = new CountDownLatch(taskCount);
-        for (int i = 0; i < taskCount; i++) {
-            int start = i * batchSize;
-            executor.execute(() -> {
+        ExecutorService executor = Executors.newFixedThreadPool(threadNum);
+        try {
+            int total = rows.size();
+            int taskCount = (total + batchSize - 1) / batchSize;
+            for (int i = 0; i < taskCount; ++i) {
+                int start = i * batchSize;
+                List<T> slice = rows.stream().skip(start).limit(batchSize).collect(Collectors.toList());
                 try {
-                    List<T> slice = rows.stream()
-                            .skip(start)
-                            .limit(batchSize)
-                            .collect(Collectors.toList());
-                    List<R> sliceResults = sliceHandler.apply(slice);
-                    if (sliceResults != null && !sliceResults.isEmpty()) {
-                        results.addAll(sliceResults);
-                    }
-                } catch (Exception e) {
-                    logger.error("分片执行异常", e);
-                } finally {
-                    latch.countDown();
+                    function.execute(slice, executor);
+                } catch (Throwable e) {
+                    logger.error("任务执行异常", e);
+                }
+            }
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @FunctionalInterface
+    public interface Function<T> {
+
+        void execute(List<T> slice, ExecutorService executor);
+    }
+
+    public static <T> void executeWithOutAwait(List<T> rows, ExecutorService executor, Consumer<T> consumer, Logger logger) {
+        if (CollectionUtils.isEmpty(rows)) {
+            return;
+        }
+        // 提交所有任务
+        for (T data : rows) {
+            executor.submit(() -> {
+                try {
+                    consumer.accept(data);
+                } catch (Throwable e) {
+                    logger.error("任务执行异常", e);
                 }
             });
         }
-        try {
-            if (!latch.await(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-                logger.warn("分片执行超时");
-            }
-        } catch (InterruptedException e) {
-            logger.error("分片执行被中断", e);
-            Thread.currentThread().interrupt();
+    }
+
+    public static <T> void executeBatchWithOutAwait(List<T> rows, ExecutorService executor, Consumer<List<T>> consumer, Logger logger) {
+        if (CollectionUtils.isEmpty(rows)) {
+            return;
         }
-        return results;
+        // 提交所有任务
+        executor.submit(() -> {
+            try {
+                consumer.accept(rows);
+            } catch (Throwable e) {
+                logger.error("任务执行异常", e);
+            }
+        });
     }
 
     /**

@@ -30,6 +30,7 @@ import org.dbsyncer.sdk.model.DatabaseMapping;
 import org.dbsyncer.sdk.model.DatabaseMigrationProgressComputer;
 import org.dbsyncer.sdk.model.DatabaseMigrationSyncTask;
 import org.dbsyncer.sdk.model.Table;
+import org.dbsyncer.sdk.model.TableMapping;
 import org.dbsyncer.sdk.spi.TaskService;
 import org.dbsyncer.sdk.storage.StorageService;
 import org.dbsyncer.storage.impl.SnowflakeIdWorker;
@@ -277,6 +278,13 @@ public class DatabaseSyncServiceImpl implements DatabaseSyncService {
                     .filter(t -> t.getName() != null && t.getName().toUpperCase().contains(key))
                     .collect(Collectors.toList());
         }
+        // 追加表映射时排除已添加源表，避免分页偏移在排除后错位并触发前端连续空翻页
+        Set<String> excludeTables = parseExcludeTables(params.get("excludeTablesJson"));
+        if (!CollectionUtils.isEmpty(excludeTables)) {
+            tables = tables.stream()
+                    .filter(t -> t.getName() == null || !excludeTables.contains(t.getName()))
+                    .collect(Collectors.toList());
+        }
         tables.sort(Comparator.comparing(Table::getName, String.CASE_INSENSITIVE_ORDER));
 
         int realTotal = tables.size();
@@ -310,6 +318,23 @@ public class DatabaseSyncServiceImpl implements DatabaseSyncService {
         return mappings == null ? Collections.emptyList() : mappings;
     }
 
+    private Set<String> parseExcludeTables(String excludeTablesJson) {
+        if (StringUtil.isBlank(excludeTablesJson)) {
+            return Collections.emptySet();
+        }
+        List<String> names = JsonUtil.jsonToArray(excludeTablesJson, String.class);
+        if (CollectionUtils.isEmpty(names)) {
+            return Collections.emptySet();
+        }
+        Set<String> exclude = new HashSet<>();
+        for (String name : names) {
+            if (StringUtil.isNotBlank(name)) {
+                exclude.add(name);
+            }
+        }
+        return exclude;
+    }
+
     /**
      * 按序号从小到大排序，并规范为连续序号 1..n，便于任务执行与恢复。
      */
@@ -322,17 +347,17 @@ public class DatabaseSyncServiceImpl implements DatabaseSyncService {
             if (mapping.getIndex() <= 0) {
                 mapping.setIndex(i + 1);
             }
-            List<DatabaseMapping.TableMapping> tableMappings = mapping.getTableMappings();
+            List<TableMapping> tableMappings = mapping.getTableMappings();
             if (CollectionUtils.isEmpty(tableMappings)) {
                 continue;
             }
             for (int j = 0; j < tableMappings.size(); j++) {
-                DatabaseMapping.TableMapping row = tableMappings.get(j);
+                TableMapping row = tableMappings.get(j);
                 if (row.getIndex() <= 0) {
                     row.setIndex(j + 1);
                 }
             }
-            tableMappings.sort(Comparator.comparingInt(DatabaseMapping.TableMapping::getIndex));
+            tableMappings.sort(Comparator.comparingInt(TableMapping::getIndex));
             for (int j = 0; j < tableMappings.size(); j++) {
                 tableMappings.get(j).setIndex(j + 1);
             }
