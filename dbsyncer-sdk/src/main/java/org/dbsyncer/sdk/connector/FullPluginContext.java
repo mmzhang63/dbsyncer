@@ -13,10 +13,7 @@ import org.dbsyncer.sdk.plugin.CustomContext;
 public final class FullPluginContext extends AbstractPluginContext implements CustomContext {
 
     private BooleanFilter booleanFilter = new BooleanFilter();
-
     private boolean targetConnector = false;
-
-    //指定查询命令
     private String commandKey;
 
     @Override

@@ -14,7 +14,6 @@ import org.dbsyncer.sdk.config.SqlBuilderConfig;
 import org.dbsyncer.sdk.connector.AbstractConnector;
 import org.dbsyncer.sdk.connector.ConnectorInstance;
 import org.dbsyncer.sdk.connector.ConnectorServiceContext;
-import org.dbsyncer.sdk.connector.DefaultMetaContext;
 import org.dbsyncer.sdk.connector.FullPluginContext;
 import org.dbsyncer.sdk.connector.database.ds.SimpleConnection;
 import org.dbsyncer.sdk.constant.ConfigConstant;
@@ -61,7 +60,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -261,10 +259,7 @@ public abstract class AbstractDatabaseConnector extends AbstractConnector implem
             return 0L;
         }
         // 2. 根据是否目标连接器选择SQL
-        DefaultMetaContext context = (metaContext instanceof DefaultMetaContext) ? (DefaultMetaContext) metaContext : null;
-        boolean isTarget = Objects.nonNull(context) && context.isTargetConnector();
-
-        String queryCountSql = isTarget ? command.get(ConnectorConstant.TARGET_QUERY_COUNT) : command.get(ConnectorConstant.OPERTION_QUERY_COUNT);
+        String queryCountSql = metaContext.isTargetConnector() ? command.get(ConnectorConstant.TARGET_QUERY_COUNT) : command.get(ConnectorConstant.OPERTION_QUERY_COUNT);
 
         // 3. SQL为空直接返回
         if (StringUtil.isBlank(queryCountSql)) {
@@ -284,21 +279,18 @@ public abstract class AbstractDatabaseConnector extends AbstractConnector implem
 
     @Override
     public Result reader(DatabaseConnectorInstance connectorInstance, ReaderContext context) {
-        String querySql = null;
+        String querySql;
         String queryKey = context.getCommandKey();
         if (StringUtil.isBlank(queryKey)) {
             boolean supportedCursor = context.isSupportedCursor() && context.getCursors() != null && context.getCursors().length > 0;
-            if (context instanceof FullPluginContext && ((FullPluginContext) context).isTargetConnector()) {
+            if (context.isTargetConnector()) {
                 queryKey = supportedCursor ? ConnectorConstant.OPERTION_QUERY_TARGET_CURSOR : ConnectorConstant.OPERTION_QUERY_TARGET;
-                querySql = context.getCommand().get(queryKey);
-                Assert.hasText(querySql, "查询语句不能为空.");
-                Collections.addAll(context.getArgs(), supportedCursor ? getPageCursorArgs(context) : getPageArgs(context));
             } else {
                 queryKey = supportedCursor ? ConnectorConstant.OPERTION_QUERY_CURSOR : ConnectorConstant.OPERTION_QUERY;
-                querySql = context.getCommand().get(queryKey);
-                Assert.hasText(querySql, "查询语句不能为空.");
-                Collections.addAll(context.getArgs(), supportedCursor ? getPageCursorArgs(context) : getPageArgs(context));
             }
+            querySql = context.getCommand().get(queryKey);
+            Assert.hasText(querySql, "查询语句不能为空.");
+            Collections.addAll(context.getArgs(), supportedCursor ? getPageCursorArgs(context) : getPageArgs(context));
         } else {
             FullPluginContext full = (FullPluginContext) context;
             String condition = buildQueryCondition(full.getFilter(), context.getArgs());

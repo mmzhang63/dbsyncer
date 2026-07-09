@@ -87,7 +87,6 @@ public class ConnectorConstant {
      */
     public static final String TARGET_QUERY_COUNT = "TARGET_QUERY_COUNT";
 
-
     /**
      * 主表，扩展表映射关系
      * <p>场景1:支持自定义SQL作为新表，需要根据主表监听增量数据

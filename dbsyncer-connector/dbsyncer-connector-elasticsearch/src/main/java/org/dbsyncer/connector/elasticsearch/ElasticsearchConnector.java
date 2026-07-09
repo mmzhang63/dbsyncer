@@ -21,7 +21,6 @@ import org.dbsyncer.sdk.connector.AbstractConnector;
 import org.dbsyncer.sdk.connector.ConfigValidator;
 import org.dbsyncer.sdk.connector.ConnectorInstance;
 import org.dbsyncer.sdk.connector.ConnectorServiceContext;
-import org.dbsyncer.sdk.connector.DefaultMetaContext;
 import org.dbsyncer.sdk.connector.FullPluginContext;
 import org.dbsyncer.sdk.constant.ConnectorConstant;
 import org.dbsyncer.sdk.enums.FilterEnum;
@@ -272,18 +271,14 @@ public final class ElasticsearchConnector extends AbstractConnector implements C
         try {
             Map<String, String> command = metaContext.getCommand();
             SearchSourceBuilder builder = new SearchSourceBuilder();
-            boolean targetConnector = metaContext instanceof DefaultMetaContext && ((DefaultMetaContext) metaContext).isTargetConnector();
-            genSearchSourceBuilder(builder, command, targetConnector);
+            genSearchSourceBuilder(builder, command, metaContext.isTargetConnector());
             // 7.x 版本以上
             if (EasyVersion.V_7_0_0.onOrBefore(connectorInstance.getVersion())) {
                 builder.trackTotalHits(true);
             }
             builder.from(0);
             builder.size(0);
-            String index = command.get(_SOURCE_INDEX);
-            if (targetConnector) {
-                index = command.get(ConnectorConstant.TARGET_QUERY_COUNT);
-            }
+            String index = command.get(metaContext.isTargetConnector() ? ConnectorConstant.TARGET_QUERY_COUNT : _SOURCE_INDEX);
             SearchRequest request = new SearchRequest(new String[]{index}, builder);
 
             SearchResponse response = connectorInstance.getConnection().searchWithVersion(request, RequestOptions.DEFAULT);
@@ -296,25 +291,24 @@ public final class ElasticsearchConnector extends AbstractConnector implements C
 
     @Override
     public Result reader(ESConnectorInstance connectorInstance, ReaderContext context) {
-        Map<String, String> command = context.getCommand();
-        boolean targetConnector = context instanceof FullPluginContext && ((FullPluginContext) context).isTargetConnector();
         Table table = context.getSourceTable();
         try {
             // 订正校验场景
             if (!StringUtil.isBlank(context.getCommandKey())) {
-                return searchByFilter(connectorInstance, context, command, targetConnector);
+                return searchByFilter(connectorInstance, context);
             }
             // 分页查询
-            return searchDeep(connectorInstance, context, command, targetConnector, table);
+            return searchDeep(connectorInstance, context, table);
         } catch (IOException e) {
             logger.error(e.getMessage());
             throw new ElasticsearchException(e.getMessage());
         }
     }
 
-    private Result searchDeep(ESConnectorInstance connectorInstance, ReaderContext context, Map<String, String> command, boolean targetConnector, Table table) throws IOException {
+    private Result searchDeep(ESConnectorInstance connectorInstance, ReaderContext context, Table table) throws IOException {
+        Map<String, String> command = context.getCommand();
         SearchSourceBuilder builder = new SearchSourceBuilder();
-        genSearchSourceBuilder(builder, command, targetConnector);
+        genSearchSourceBuilder(builder, command, context.isTargetConnector());
         builder.timeout(TimeValue.timeValueSeconds(connectorInstance.getConfig().getTimeoutSeconds()));
         PrimaryKeyUtil.findTablePrimaryKeys(table).forEach(pk -> builder.sort(pk, SortOrder.ASC));
 
@@ -325,7 +319,7 @@ public final class ElasticsearchConnector extends AbstractConnector implements C
             builder.from((context.getPageIndex() - 1) * context.getPageSize());
         }
         builder.size(context.getPageSize());
-        String index = targetConnector ? command.get(_TARGET_INDEX) : command.get(_SOURCE_INDEX);
+        String index = context.isTargetConnector() ? command.get(_TARGET_INDEX) : command.get(_SOURCE_INDEX);
 
         return searchResult(connectorInstance, context, index, builder);
     }
@@ -347,16 +341,16 @@ public final class ElasticsearchConnector extends AbstractConnector implements C
         return new Result(list);
     }
 
-    private Result searchByFilter(ESConnectorInstance connectorInstance, ReaderContext context,
-                                  Map<String, String> command, boolean targetConnector) throws IOException {
+    private Result searchByFilter(ESConnectorInstance connectorInstance, ReaderContext context) throws IOException {
         BooleanFilter filter = ((FullPluginContext) context).getFilter();
+        Map<String, String> command = context.getCommand();
         String index = command.get(context.getCommandKey());
         QueryBuilder dynamicQuery = buildFilterToQuery(filter);
         if (dynamicQuery == null) {
             return new Result(Collections.emptyList());
         }
         SearchSourceBuilder builder = new SearchSourceBuilder();
-        String fieldNamesJson = targetConnector ? command.get(ConnectorConstant.OPERTION_TARGET_QUERY_FIELDS) : command.get(ConnectorConstant.OPERTION_QUERY_FILTER);
+        String fieldNamesJson = context.isTargetConnector() ? command.get(ConnectorConstant.OPERTION_TARGET_QUERY_FIELDS) : command.get(ConnectorConstant.OPERTION_QUERY_FILTER);
         if (!StringUtil.isBlank(fieldNamesJson)) {
             builder.fetchSource(StringUtil.split(fieldNamesJson, ","), null);
         }
