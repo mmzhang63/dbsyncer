@@ -30,11 +30,11 @@ import org.dbsyncer.parser.util.PickerUtil;
 import org.dbsyncer.sdk.connector.ConnectorInstance;
 import org.dbsyncer.sdk.connector.DefaultConnectorServiceContext;
 import org.dbsyncer.sdk.constant.ConfigConstant;
+import org.dbsyncer.sdk.enums.CommonTaskStepStatusEnum;
 import org.dbsyncer.sdk.enums.FilterEnum;
 import org.dbsyncer.sdk.enums.SortEnum;
 import org.dbsyncer.sdk.enums.StorageEnum;
 import org.dbsyncer.sdk.enums.TableTypeEnum;
-import org.dbsyncer.sdk.enums.CommonTaskStepStatusEnum;
 import org.dbsyncer.sdk.filter.Query;
 import org.dbsyncer.sdk.model.CommonTask;
 import org.dbsyncer.sdk.model.Field;
@@ -637,6 +637,7 @@ public class ValidateSyncServiceImpl implements ValidateSyncService {
         task.setReadNum(NumberUtil.toInt(params.get("readNum"), task.getReadNum()));
         task.setBatchNum(NumberUtil.toInt(params.get("batchNum"), task.getBatchNum()));
         task.setThreadNum(NumberUtil.toInt(params.get("threadNum"), task.getThreadNum()));
+        task.getTableSnapshots().clear();
     }
 
     private void log(LogType log, ValidateSyncTask task, TableGroup tableGroup) {

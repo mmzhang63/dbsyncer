@@ -131,6 +131,7 @@ public class DatabaseSyncServiceImpl implements DatabaseSyncService {
         fillTaskOnEdit(task, params);
         task.setDatabaseMappings(mappings);
         clearTableGroups(task.getId());
+        task.getDatabaseSnapshots().clear();
         return taskService.edit(task);
     }
 
@@ -142,7 +143,7 @@ public class DatabaseSyncServiceImpl implements DatabaseSyncService {
                     throw new BizException("同源同库不允许同步，请更换目标连接或数据库！");
                 }
                 boolean selectedSchema = StringUtil.isNotBlank(mapping.getSourceSchema()) && StringUtil.isNotBlank(mapping.getTargetSchema());
-                if (selectedSchema && StringUtil.equals(mapping.getSourceSchema(), mapping.getTargetSchema())) {
+                if (!selectedDB && selectedSchema && StringUtil.equals(mapping.getSourceSchema(), mapping.getTargetSchema())) {
                     throw new BizException("同源同schema不允许同步，请更换目标连接或schema！");
                 }
 

@@ -217,7 +217,7 @@ public abstract class BatchTaskUtil {
         }
         ExecutorService executor = Executors.newFixedThreadPool(threadNum);
         try {
-            executeBySlice(rows,batchSize,executor,function,logger);
+            executeBySlice(rows, batchSize, executor, function, logger);
         } finally {
             executor.shutdownNow();
         }
@@ -247,34 +247,60 @@ public abstract class BatchTaskUtil {
         void execute(List<T> slice, ExecutorService executor);
     }
 
-    public static <T> void executeWithOutAwait(List<T> rows, ExecutorService executor, Consumer<T> consumer, Logger logger) {
-        if (CollectionUtils.isEmpty(rows)) {
-            return;
-        }
+    public static <T> void executeWithAwait(List<T> rows, ExecutorService executor, Consumer<T> consumer, Logger logger) {
+        List<Future<?>> futures = new ArrayList<>();
         // 提交所有任务
         for (T data : rows) {
-            executor.submit(() -> {
+            futures.add(executor.submit(() -> {
                 try {
                     consumer.accept(data);
                 } catch (Throwable e) {
                     logger.error("任务执行异常", e);
                 }
-            });
+            }));
+        }
+        try {
+            // 等待所有任务完成
+            for (Future<?> future : futures) {
+                future.get();
+            }
+        } catch (Exception e) {
+            // 线程被中断，优雅处理
+            Thread.currentThread().interrupt();
+            // 取消所有未完成的任务
+            for (Future<?> f : futures) {
+                if (!f.isDone()) {
+                    f.cancel(true);
+                }
+            }
         }
     }
 
-    public static <T> void executeBatchWithOutAwait(List<T> rows, ExecutorService executor, Consumer<List<T>> consumer, Logger logger) {
-        if (CollectionUtils.isEmpty(rows)) {
-            return;
-        }
+    public static <T> void executeBatchWithoutAwait(List<T> rows, ExecutorService executor, Consumer<List<T>> consumer, Logger logger) {
+        List<Future<?>> futures = new ArrayList<>();
         // 提交所有任务
-        executor.submit(() -> {
+        futures.add(executor.submit(() -> {
             try {
                 consumer.accept(rows);
             } catch (Throwable e) {
                 logger.error("任务执行异常", e);
             }
-        });
+        }));
+        try {
+            // 等待所有任务完成
+            for (Future<?> future : futures) {
+                future.get();
+            }
+        } catch (Exception e) {
+            // 线程被中断，优雅处理
+            Thread.currentThread().interrupt();
+            // 取消所有未完成的任务
+            for (Future<?> f : futures) {
+                if (!f.isDone()) {
+                    f.cancel(true);
+                }
+            }
+        }
     }
 
     /**
