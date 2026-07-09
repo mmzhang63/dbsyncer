@@ -135,15 +135,13 @@ public class DatabaseSyncServiceImpl implements DatabaseSyncService {
 
     private static void checkDatabaseMapping(List<DatabaseMapping> mappings) {
         for (DatabaseMapping mapping : mappings) {
-
-            if (StringUtil.equalsIgnoreCase(mapping.getSourceConnectorId(), mapping.getTargetConnectorId())) {
-
-                if (StringUtil.isNotBlank(mapping.getSourceDatabase()) && StringUtil.isNotBlank(mapping.getTargetDatabase()) && StringUtil.equalsIgnoreCase(mapping.getSourceDatabase(), mapping.getTargetDatabase())) {
+            if (StringUtil.equals(mapping.getSourceConnectorId(), mapping.getTargetConnectorId())) {
+                boolean selectedDB = StringUtil.isNotBlank(mapping.getSourceDatabase()) && StringUtil.isNotBlank(mapping.getTargetDatabase());
+                if (selectedDB && StringUtil.equals(mapping.getSourceDatabase(), mapping.getTargetDatabase())) {
                     throw new BizException("同源同库不允许同步，请更换目标连接或数据库！");
                 }
-
-                if (StringUtil.isBlank(mapping.getSourceDatabase()) && StringUtil.isBlank(mapping.getTargetDatabase()) && StringUtil.equalsIgnoreCase(mapping.getSourceSchema(),mapping.getTargetSchema())) {
-                    throw new BizException("同源同schema不允许同步，请更换目标连接或schama！");
+                if (selectedDB && StringUtil.equals(mapping.getSourceSchema(), mapping.getTargetSchema())) {
+                    throw new BizException("同源同schema不允许同步，请更换目标连接或schema！");
                 }
 
             }
@@ -191,7 +189,7 @@ public class DatabaseSyncServiceImpl implements DatabaseSyncService {
                 DatabaseMigrationSyncTask task = (DatabaseMigrationSyncTask) item;
                 DatabaseSyncTaskVO vo = convertTask2Vo(task);
                 if (vo != null) {
-                    List<TableGroup> tableGroups = listTaskTableGroups(task);
+                    List<TableGroup> tableGroups = profileComponent.getTableGroupAll(task.getId());
                     int tableCount = resolveTotalTableCount(task, tableGroups);
                     vo.setProgress(DatabaseMigrationProgressComputer.calculateProgressPercent(task, tableCount));
                     vo.setTotalTableCount(tableCount);
@@ -382,13 +380,6 @@ public class DatabaseSyncServiceImpl implements DatabaseSyncService {
     private void clearTableGroups(String taskId) {
         profileComponent.getTableGroupAll(taskId)
                 .forEach(group -> profileComponent.removeTableGroup(group.getId()));
-    }
-
-    private List<TableGroup> listTaskTableGroups(DatabaseMigrationSyncTask task) {
-        if (task == null || StringUtil.isBlank(task.getId())) {
-            return Collections.emptyList();
-        }
-        return profileComponent.getTableGroupAll(task.getId());
     }
 
     private void validateMappingConnectors(List<DatabaseMapping> mappings) {
