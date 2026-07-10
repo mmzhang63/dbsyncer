@@ -217,28 +217,20 @@ public abstract class BatchTaskUtil {
         }
         ExecutorService executor = Executors.newFixedThreadPool(threadNum);
         try {
-            executeBySlice(rows, batchSize, executor, function, logger);
+            int total = rows.size();
+            int taskCount = (total + batchSize - 1) / batchSize;
+            for (int i = 0; i < taskCount; ++i) {
+                int start = i * batchSize;
+                List<T> slice = rows.stream().skip(start).limit(batchSize).collect(Collectors.toList());
+                try {
+                    function.execute(slice, executor);
+                } catch (Throwable e) {
+                    logger.error("任务执行异常", e);
+                }
+            }
         } finally {
             executor.shutdownNow();
         }
-    }
-
-    public static <T> void executeBySlice(List<T> rows, int batchSize, ExecutorService executor, Function<T> function, Logger logger) {
-        if (CollectionUtils.isEmpty(rows)) {
-            return;
-        }
-        int total = rows.size();
-        int taskCount = (total + batchSize - 1) / batchSize;
-        for (int i = 0; i < taskCount; ++i) {
-            int start = i * batchSize;
-            List<T> slice = rows.stream().skip(start).limit(batchSize).collect(Collectors.toList());
-            try {
-                function.execute(slice, executor);
-            } catch (Throwable e) {
-                logger.error("任务执行异常", e);
-            }
-        }
-
     }
 
     @FunctionalInterface
