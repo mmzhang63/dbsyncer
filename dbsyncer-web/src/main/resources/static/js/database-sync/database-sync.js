@@ -2190,6 +2190,7 @@
             showConfirm({
                 title: '确认开启覆盖结构？',
                 message: '开启会删除目标库已经存在的表',
+                size: 'large',
                 icon: 'warning',
                 confirmType: 'danger',
                 confirmText: '确认',

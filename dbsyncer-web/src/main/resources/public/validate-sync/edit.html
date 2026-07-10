@@ -273,6 +273,33 @@
         return true;
     }
 
+    function showReverseSyncConfirm(onConfirm) {
+        showConfirm({
+            title: '确定开启反向订正？',
+            message: '以源库为权威基准，删除目标库内源库不存在的冗余记录，删除操作不可恢复，请确认源库数据完整无误后继续。',
+            size: 'large',
+            icon: 'warning',
+            confirmType: 'danger',
+            onConfirm: onConfirm
+        });
+    }
+
+    function bindReverseSyncConfirm() {
+        $('#validate-sync-modify-form input[name="enableReverseSync"]').on('change', function () {
+            var $input = $(this);
+            if ($input.is(':checked')) {
+                $input.prop('checked', false);
+                syncTargetStrategyState();
+                showReverseSyncConfirm(function () {
+                    $input.prop('checked', true);
+                    syncTargetStrategyState();
+                });
+                return;
+            }
+            syncTargetStrategyState();
+        });
+    }
+
     function submitValidateSyncForm() {
         var $form = $('#validate-sync-modify-form');
         if (!validateValidateSyncScope($form)) {
@@ -302,16 +329,6 @@
                 }
             });
         };
-        if ($form.find('input[name="enableReverseSync"]').is(':checked')) {
-            showConfirm({
-                title: '确定开启反向订正？',
-                body: '将删除目标库中源库不存在的记录，此操作不可恢复，请确认源库为权威基准。',
-                icon: 'warning',
-                confirmType: 'danger',
-                onConfirm: saveTask
-            });
-            return;
-        }
         saveTask();
     }
 
@@ -330,7 +347,7 @@
             }
         });
         $('#validate-sync-modify-form input[name="enableReverseScan"]').on('change', syncTargetStrategyState);
-        $('#validate-sync-modify-form input[name="enableReverseSync"]').on('change', syncTargetStrategyState);
+        bindReverseSyncConfirm();
         syncTargetStrategyState();
 
         // 保存

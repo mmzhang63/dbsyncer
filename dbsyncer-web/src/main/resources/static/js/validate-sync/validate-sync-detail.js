@@ -294,7 +294,7 @@
             var confirmType = 'primary';
             if (hasDelete && !hasUpsert) {
                 title = '确定反向订正？';
-                body = '将删除目标库中源库不存在的记录，此操作不可恢复，请确认源库为权威基准。';
+                body = '以源库为权威基准，删除目标库内源库不存在的冗余记录，删除操作不可恢复，请确认源库数据完整无误后继续。';
                 confirmType = 'danger';
             } else if (hasDelete && hasUpsert) {
                 body = '将写入源数据到目标，并删除目标库中源库不存在的多余行，请确认后继续。';
