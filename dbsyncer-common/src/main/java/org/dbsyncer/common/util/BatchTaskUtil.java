@@ -35,11 +35,6 @@ public abstract class BatchTaskUtil {
 
     /**
      * 创建线程池
-     *
-     * @param threadPoolSize
-     * @param maximumPoolSize
-     * @param queueSize
-     * @return
      */
     public static ExecutorService createExecutor(int threadPoolSize, int maximumPoolSize, int queueSize) {
         return new ThreadPoolExecutor(threadPoolSize, // 核心线程数
@@ -233,12 +228,6 @@ public abstract class BatchTaskUtil {
         }
     }
 
-    @FunctionalInterface
-    public interface Function<T> {
-
-        void execute(List<T> slice, ExecutorService executor);
-    }
-
     public static <T> void executeWithAwait(List<T> rows, ExecutorService executor, Consumer<T> consumer, Logger logger) {
         List<Future<?>> futures = new ArrayList<>();
         // 提交所有任务
@@ -305,6 +294,12 @@ public abstract class BatchTaskUtil {
     public interface Processor<T, R> {
 
         R process(T data) throws Exception;
+    }
+
+    @FunctionalInterface
+    public interface Function<T> {
+
+        void execute(List<T> slice, ExecutorService executor);
     }
 
 }
