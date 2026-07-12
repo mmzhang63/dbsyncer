@@ -10,6 +10,7 @@ import org.dbsyncer.connector.clickhouse.cdc.ClickHouseListener;
 import org.dbsyncer.connector.clickhouse.schema.ClickHouseSchemaResolver;
 import org.dbsyncer.connector.clickhouse.validator.ClickHouseConfigValidator;
 import org.dbsyncer.sdk.SdkException;
+import org.dbsyncer.sdk.config.CommandConfig;
 import org.dbsyncer.sdk.config.DatabaseConfig;
 import org.dbsyncer.sdk.config.SqlBuilderConfig;
 import org.dbsyncer.sdk.connector.ConfigValidator;
@@ -64,6 +65,8 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
     private static final String QUERY_COLUMNS = "SELECT name, type, numeric_precision, numeric_scale, is_in_primary_key, is_in_sorting_key "
             + "FROM system.columns WHERE database = ? AND table = ? ORDER BY position";
 
+    private static final int DELETE_IN_BATCH_SIZE = 1000;
+
     private final ClickHouseConfigValidator configValidator = new ClickHouseConfigValidator();
     private final ClickHouseSchemaResolver schemaResolver = new ClickHouseSchemaResolver();
 
@@ -99,34 +102,129 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
     }
 
     @Override
-    public Result writer(DatabaseConnectorInstance connectorInstance, PluginContext context) {
-        if (!context.isForceUpdate() || isDelete(context.getEvent())) {
-            return super.writer(connectorInstance, context);
+    public Map<String, String> getTargetCommand(CommandConfig commandConfig) {
+        Map<String, String> map = super.getTargetCommand(commandConfig);
+        if (CollectionUtils.isEmpty(map)) {
+            return map;
         }
-        // ClickHouse 不支持 UPSERT 覆盖更新：改为先按主键删除，再执行插入。
-        deleteByPrimaryKey(connectorInstance, context);
+        // forceUpdate 时父类只生成 UPSERT；修改事件会转 INSERT，这里补齐 INSERT。
+        if (commandConfig.isForceUpdate() && StringUtil.isBlank(map.get(ConnectorConstant.OPERTION_INSERT))) {
+            map.put(ConnectorConstant.OPERTION_INSERT, map.get(ConnectorConstant.OPERTION_UPSERT));
+        }
+        // 预生成固定批大小的 DELETE IN，避免写入时动态拼 SQL。
+        String deleteSql = map.get(ConnectorConstant.OPERTION_DELETE);
+        if (StringUtil.isNotBlank(deleteSql)) {
+            List<String> primaryKeys = PrimaryKeyUtil.findTablePrimaryKeys(commandConfig.getTable());
+            map.put(ConnectorConstant.OPERTION_DELETE, buildDeleteInSql(deleteSql, primaryKeys, DELETE_IN_BATCH_SIZE));
+        }
+        return map;
+    }
+
+    @Override
+    public Result writer(DatabaseConnectorInstance connectorInstance, PluginContext context) {
+        // ClickHouse 逐条 DELETE 会产生大量 mutation，统一改为按主键 IN 分批删除。
+        if (isDelete(context.getEvent())) {
+            deleteByPrimaryKey(connectorInstance, context);
+            Result result = new Result();
+            result.getSuccessData().addAll(context.getTargetList());
+            return result;
+        }
+        // ClickHouse 不支持标准 UPSERT，且禁止更新主键/排序键列：覆盖写入与修改统一为先删后插。
+        if (context.isForceUpdate() || isUpdate(context.getEvent())) {
+            deleteByPrimaryKey(connectorInstance, context);
+            if (isUpdate(context.getEvent())) {
+                context.setEvent(ConnectorConstant.OPERTION_INSERT);
+            }
+        }
         return super.writer(connectorInstance, context);
     }
 
     private void deleteByPrimaryKey(DatabaseConnectorInstance connectorInstance, PluginContext context) {
-        List<Field> targetFields = context.getTargetFields();
         List<Map> targetRows = context.getTargetList();
-        List<Field> primaryKeyFields = PrimaryKeyUtil.findExistPrimaryKeyFields(targetFields);
+        if (CollectionUtils.isEmpty(targetRows)) {
+            return;
+        }
+        List<Field> primaryKeyFields = PrimaryKeyUtil.findExistPrimaryKeyFields(context.getTargetFields());
         if (CollectionUtils.isEmpty(primaryKeyFields)) {
-            throw new SdkException("覆盖更新时主键字段不能为空.");
+            throw new SdkException("按主键删除时主键字段不能为空.");
         }
         String deleteSql = context.getCommand().get(ConnectorConstant.OPERTION_DELETE);
         if (StringUtil.isBlank(deleteSql)) {
-            throw new SdkException("覆盖更新时删除SQL不能为空.");
+            throw new SdkException("按主键删除时删除SQL不能为空.");
         }
         try {
-            connectorInstance.execute(databaseTemplate -> {
-                batchUpdate(databaseTemplate, deleteSql, primaryKeyFields, targetRows);
-                return null;
-            });
+            for (int offset = 0; offset < targetRows.size(); offset += DELETE_IN_BATCH_SIZE) {
+                int end = Math.min(offset + DELETE_IN_BATCH_SIZE, targetRows.size());
+                Object[] args = buildDeleteInArgs(primaryKeyFields, targetRows, offset, end);
+                connectorInstance.execute(databaseTemplate -> {
+                    databaseTemplate.update(deleteSql, args);
+                    return null;
+                });
+            }
         } catch (Exception e) {
-            throw new SdkException("覆盖更新删除旧数据失败: " + e.getMessage());
+            throw new SdkException("按主键删除数据失败: " + e.getMessage());
         }
+    }
+
+    /**
+     * 将单行 DELETE WHERE pk=? 转为固定批大小的 DELETE WHERE pk IN (?,?,...)
+     */
+    private String buildDeleteInSql(String deleteSql, List<String> primaryKeys, int batchSize) {
+        int whereIndex = deleteSql.toUpperCase(Locale.ROOT).lastIndexOf(" WHERE ");
+        if (whereIndex < 0) {
+            throw new SdkException("删除SQL缺少WHERE条件: " + deleteSql);
+        }
+        StringBuilder sql = new StringBuilder(deleteSql.substring(0, whereIndex)).append(" WHERE ");
+        if (primaryKeys.size() == 1) {
+            sql.append(buildWithQuotation(primaryKeys.get(0))).append(" IN (");
+            appendPlaceholders(sql, batchSize);
+            sql.append(")");
+            return sql.toString();
+        }
+
+        sql.append("(");
+        for (int i = 0; i < primaryKeys.size(); i++) {
+            if (i > 0) {
+                sql.append(StringUtil.COMMA);
+            }
+            sql.append(buildWithQuotation(primaryKeys.get(i)));
+        }
+        sql.append(") IN (");
+        for (int i = 0; i < batchSize; i++) {
+            if (i > 0) {
+                sql.append(StringUtil.COMMA);
+            }
+            sql.append("(");
+            appendPlaceholders(sql, primaryKeys.size());
+            sql.append(")");
+        }
+        sql.append(")");
+        return sql.toString();
+    }
+
+    private void appendPlaceholders(StringBuilder sql, int count) {
+        for (int i = 0; i < count; i++) {
+            if (i > 0) {
+                sql.append(StringUtil.COMMA);
+            }
+            sql.append("?");
+        }
+    }
+
+    /**
+     * 按固定批大小组装 IN 参数；不足一批时用最后一行主键填充，保证占位符数量与预生成 SQL 一致。
+     */
+    private Object[] buildDeleteInArgs(List<Field> primaryKeyFields, List<Map> rows, int from, int to) {
+        Object[] args = new Object[DELETE_IN_BATCH_SIZE * primaryKeyFields.size()];
+        int index = 0;
+        Map lastRow = rows.get(to - 1);
+        for (int i = 0; i < DELETE_IN_BATCH_SIZE; i++) {
+            Map row = (from + i) < to ? rows.get(from + i) : lastRow;
+            for (Field field : primaryKeyFields) {
+                args[index++] = row.get(field.getName());
+            }
+        }
+        return args;
     }
 
     @Override
