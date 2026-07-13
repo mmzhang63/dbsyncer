@@ -4,7 +4,7 @@
 package org.dbsyncer.sdk.model;
 
 /**
- * 订正校验单表终态结果（落库字段与 {@link org.dbsyncer.sdk.enums.StorageEnum#VALIDATE_SYNC_DETAIL} 列对应）。
+ * 订正校验单表终态结果
  *
  * @author wuji
  * @version 1.0.0
@@ -23,72 +23,67 @@ public class ValidateSyncDetailResult {
     /** 差异 data 列表 JSON，汇总指标走独立列 */
     private String content;
 
-    public static ValidateSyncDetailResult of(String detailType) {
-        ValidateSyncDetailResult result = new ValidateSyncDetailResult();
-        result.detailType = detailType;
-        return result;
-    }
-
-    public ValidateSyncDetailResult tables(String sourceTableName, String targetTableName) {
-        this.sourceTableName = sourceTableName;
-        this.targetTableName = targetTableName;
-        return this;
-    }
-
-    public ValidateSyncDetailResult sourceTotal(Long sourceTotal) {
-        this.sourceTotal = sourceTotal;
-        return this;
-    }
-
-    public ValidateSyncDetailResult targetTotal(Long targetTotal) {
-        this.targetTotal = targetTotal;
-        return this;
-    }
-
-    public ValidateSyncDetailResult diffTotal(long diffTotal) {
-        this.diffTotal = diffTotal;
-        return this;
-    }
-
-    public ValidateSyncDetailResult fixedTotal(long fixedTotal) {
-        this.fixedTotal = fixedTotal;
-        return this;
-    }
-
-    public ValidateSyncDetailResult content(String content) {
-        this.content = content;
-        return this;
-    }
-
     public String getDetailType() {
         return detailType;
+    }
+
+    public void setDetailType(String detailType) {
+        this.detailType = detailType;
     }
 
     public String getSourceTableName() {
         return sourceTableName;
     }
 
+    public void setSourceTableName(String sourceTableName) {
+        this.sourceTableName = sourceTableName;
+    }
+
     public String getTargetTableName() {
         return targetTableName;
+    }
+
+    public void setTargetTableName(String targetTableName) {
+        this.targetTableName = targetTableName;
     }
 
     public Long getSourceTotal() {
         return sourceTotal;
     }
 
+    public void setSourceTotal(Long sourceTotal) {
+        this.sourceTotal = sourceTotal;
+    }
+
     public Long getTargetTotal() {
         return targetTotal;
+    }
+
+    public void setTargetTotal(Long targetTotal) {
+        this.targetTotal = targetTotal;
     }
 
     public long getDiffTotal() {
         return diffTotal;
     }
 
+    public void setDiffTotal(long diffTotal) {
+        this.diffTotal = diffTotal;
+    }
+
     public long getFixedTotal() {
         return fixedTotal;
     }
 
+    public void setFixedTotal(long fixedTotal) {
+        this.fixedTotal = fixedTotal;
+    }
+
     public String getContent() {
         return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
     }
 }

@@ -156,7 +156,7 @@ public class ParserSupportConfiguration {
             }
 
             @Override
-            public java.util.Map<String, Object> manualRevise(String detailId) {
+            public Map<String, Object> manualRevise(String detailId) {
                 return null;
             }
         };
