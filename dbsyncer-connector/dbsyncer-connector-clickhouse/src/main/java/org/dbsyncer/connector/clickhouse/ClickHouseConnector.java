@@ -6,7 +6,6 @@ package org.dbsyncer.connector.clickhouse;
 import org.dbsyncer.common.model.Result;
 import org.dbsyncer.common.util.CollectionUtils;
 import org.dbsyncer.common.util.StringUtil;
-import org.dbsyncer.common.util.TaskSplitUtil;
 import org.dbsyncer.connector.clickhouse.cdc.ClickHouseListener;
 import org.dbsyncer.connector.clickhouse.schema.ClickHouseSchemaResolver;
 import org.dbsyncer.connector.clickhouse.validator.ClickHouseConfigValidator;
@@ -65,8 +64,6 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
 
     private static final String QUERY_COLUMNS = "SELECT name, type, numeric_precision, numeric_scale, is_in_primary_key, is_in_sorting_key "
             + "FROM system.columns WHERE database = ? AND table = ? ORDER BY position";
-
-    private static final int DELETE_IN_BATCH_SIZE = 1000;
 
     private final ClickHouseConfigValidator configValidator = new ClickHouseConfigValidator();
     private final ClickHouseSchemaResolver schemaResolver = new ClickHouseSchemaResolver();
@@ -147,13 +144,11 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
         if (StringUtil.isBlank(deleteSql)) {
             throw new SdkException("按主键删除时删除SQL不能为空.");
         }
-        List<String> primaryKeys = primaryKeyFields.stream().map(Field::getName).collect(Collectors.toList());
         try {
-            TaskSplitUtil.split(targetRows, DELETE_IN_BATCH_SIZE, chunk -> {
-                String sql = buildDeleteInSql(deleteSql, primaryKeys, chunk.size());
-                List<Object[]> objects = buildDeleteInArgs(primaryKeyFields, chunk);
-                connectorInstance.execute(databaseTemplate -> databaseTemplate.batchUpdate(sql, objects));
-            });
+            List<String> primaryKeys = primaryKeyFields.stream().map(Field::getName).collect(Collectors.toList());
+            String sql = buildDeleteInSql(deleteSql, primaryKeys, targetRows.size());
+            List<Object[]> objects = buildDeleteInArgs(primaryKeyFields, targetRows);
+            connectorInstance.execute(databaseTemplate -> databaseTemplate.batchUpdate(sql, objects));
         } catch (Exception e) {
             throw new SdkException("按主键删除数据失败: " + e.getMessage());
         }
