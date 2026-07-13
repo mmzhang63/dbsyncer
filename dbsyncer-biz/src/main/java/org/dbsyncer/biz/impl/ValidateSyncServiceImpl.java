@@ -418,9 +418,7 @@ public class ValidateSyncServiceImpl implements ValidateSyncService {
             query.addFilter(ConfigConstant.TASK_DIFF_TOTAL, FilterEnum.GT, 0);
         }
 
-        Set<String> selectFiled = getTaskDetailSelect();
-
-        query.setSelectFlied(selectFiled);
+        query.setSelectFlied(getTaskDetailSelect());
         query.addOrderBy(ConfigConstant.TASK_DIFF_TOTAL, SortEnum.DESC);
         return storageService.query(query);
     }
@@ -728,17 +726,18 @@ public class ValidateSyncServiceImpl implements ValidateSyncService {
 
     private static Set<String> getTaskDetailSelect() {
         Set<String> selectFiled = new HashSet<>();
-        selectFiled.add(ConfigConstant.TASK_ID);
         selectFiled.add(ConfigConstant.CONFIG_MODEL_ID);
+        selectFiled.add(ConfigConstant.CONFIG_MODEL_UPDATE_TIME);
+        selectFiled.add(ConfigConstant.CONFIG_MODEL_CREATE_TIME);
+        selectFiled.add(ConfigConstant.CONFIG_MODEL_TYPE);
+        selectFiled.add(ConfigConstant.TASK_ID);
+        selectFiled.add(ConfigConstant.TASK_STATUS);
         selectFiled.add(ConfigConstant.TASK_SOURCE_TABLE_NAME);
         selectFiled.add(ConfigConstant.DATA_TARGET_TABLE_NAME);
         selectFiled.add(ConfigConstant.TASK_SOURCE_TOTAL);
         selectFiled.add(ConfigConstant.TASK_TARGET_TOTAL);
         selectFiled.add(ConfigConstant.TASK_DIFF_TOTAL);
         selectFiled.add(ConfigConstant.TASK_FIXED_TOTAL);
-        selectFiled.add(ConfigConstant.CONFIG_MODEL_TYPE);
-        selectFiled.add(ConfigConstant.CONFIG_MODEL_UPDATE_TIME);
-        selectFiled.add(ConfigConstant.CONFIG_MODEL_CREATE_TIME);
         return selectFiled;
     }
 }

@@ -10,8 +10,6 @@ import org.dbsyncer.parser.flush.impl.TableGroupBufferActuator;
 import org.dbsyncer.sdk.model.CommonTask;
 import org.dbsyncer.sdk.model.DatabaseMigrationDetailResult;
 import org.dbsyncer.sdk.model.DatabaseMigrationSyncTask;
-import org.dbsyncer.sdk.model.ValidateSyncDetailResult;
-import org.dbsyncer.sdk.model.ValidateSyncTask;
 import org.dbsyncer.sdk.spi.DatabaseSyncDetailService;
 import org.dbsyncer.sdk.spi.ServiceFactory;
 import org.dbsyncer.sdk.spi.TableGroupBufferActuatorService;
@@ -142,17 +140,10 @@ public class ParserSupportConfiguration {
             return service;
         }
         return new ValidateSyncDetailService() {
-            @Override
-            public void saveResult(ValidateSyncTask task, ValidateSyncDetailResult detail) {
-            }
 
             @Override
             public Paging result(String taskId) {
                 return null;
-            }
-
-            @Override
-            public void clearDetail(String taskId) {
             }
 
             @Override

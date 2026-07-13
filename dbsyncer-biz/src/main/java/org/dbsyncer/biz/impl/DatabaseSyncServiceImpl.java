@@ -484,8 +484,11 @@ public class DatabaseSyncServiceImpl implements DatabaseSyncService {
     private static Set<String> getMigrationDetailSelect() {
         Set<String> fields = new HashSet<>();
         fields.add(ConfigConstant.CONFIG_MODEL_ID);
-        fields.add(ConfigConstant.TASK_ID);
+        fields.add(ConfigConstant.CONFIG_MODEL_UPDATE_TIME);
+        fields.add(ConfigConstant.CONFIG_MODEL_CREATE_TIME);
         fields.add(ConfigConstant.CONFIG_MODEL_TYPE);
+        fields.add(ConfigConstant.TASK_STATUS);
+        fields.add(ConfigConstant.TASK_ID);
         fields.add(ConfigConstant.DATABASE_SYNC_DETAIL_TABLE_INDEX);
         fields.add(ConfigConstant.DATABASE_SYNC_DETAIL_SOURCE_DATABASE);
         fields.add(ConfigConstant.DATABASE_SYNC_DETAIL_SOURCE_SCHEMA);
@@ -497,8 +500,6 @@ public class DatabaseSyncServiceImpl implements DatabaseSyncService {
         fields.add(ConfigConstant.DATABASE_SYNC_DETAIL_SUCCESS_TOTAL);
         fields.add(ConfigConstant.DATABASE_SYNC_DETAIL_FAIL_TOTAL);
         fields.add(ConfigConstant.TASK_CONTENT);
-        fields.add(ConfigConstant.CONFIG_MODEL_UPDATE_TIME);
-        fields.add(ConfigConstant.CONFIG_MODEL_CREATE_TIME);
         return fields;
     }
 }

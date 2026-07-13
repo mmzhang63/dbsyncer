@@ -67,6 +67,54 @@
             tableSchema: 'badge-info',
             index: 'badge-warning'
         };
+        var statusTextMap = {
+            0: '运行中',
+            1: '已完成'
+        };
+        var statusBadgeMap = {
+            0: 'badge-success',
+            1: 'badge-info'
+        };
+
+        function getStatusBadge(status) {
+            var code = Number(status);
+            var text = statusTextMap[code];
+            if (!text) {
+                return '<span class="text-gray-400">-</span>';
+            }
+            var badgeClass = statusBadgeMap[code] || 'badge-info';
+            return '<span class="badge ' + badgeClass + '">' + text + '</span>';
+        }
+
+        function getSourceTargetCounts(row) {
+            if (row.type !== 'rowData') {
+                return '';
+            }
+            var sourceTotal = (row.sourceTotal === undefined || row.sourceTotal === null) ? '-' : row.sourceTotal;
+            var targetTotal = (row.targetTotal === undefined || row.targetTotal === null) ? '-' : row.targetTotal;
+            return '<span>源：' + sourceTotal + '</span><br><span>目：' + targetTotal + '</span>';
+        }
+
+        function getElapsedDuration(row) {
+            var text = formatElapsedDuration(row.createTime, row.updateTime);
+            if (!text) {
+                return '';
+            }
+            return '<span class="text-tertiary">耗时：' + escapeHtml(text) + '</span>';
+        }
+
+        function getExecutionDetail(row) {
+            var parts = [getStatusBadge(row.status)];
+            var duration = getElapsedDuration(row);
+            if (duration) {
+                parts.push(duration);
+            }
+            var counts = getSourceTargetCounts(row);
+            if (counts) {
+                parts.push(counts);
+            }
+            return parts.join('<br>');
+        }
 
         function parseContent(contentStr) {
             try {
@@ -100,15 +148,6 @@
                 return '<span class="badge badge-success">' + total + '</span>';
             }
             return '<span class="text-gray-400">0</span>';
-        }
-
-        function getSourceTargetCounts(row) {
-            if (row.type !== 'rowData') {
-                return '<span class="text-gray-400">-</span>';
-            }
-            var sourceTotal = (row.sourceTotal === undefined || row.sourceTotal === null) ? '-' : row.sourceTotal;
-            var targetTotal = (row.targetTotal === undefined || row.targetTotal === null) ? '-' : row.targetTotal;
-            return '<span>源：' + sourceTotal + '</span><br><span>目：' + targetTotal + '</span>';
         }
 
         function parseDiffDetails(details) {
@@ -409,7 +448,7 @@
                     + '<td><span class="badge ' + badgeClass + '">' + escapeHtml(typeText) + '</span></td>'
                     + '<td>' + escapeHtml(row.sourceTableName || '-') + '</td>'
                     + '<td>' + escapeHtml(row.targetTableName || '-') + '</td>'
-                    + '<td>' + getSourceTargetCounts(row) + '</td>'
+                    + '<td>' + getExecutionDetail(row) + '</td>'
                     + '<td>' + getDiffTotal(row) + '</td>'
                     + '<td>' + getCorrectedTotal(row) + '</td>'
                     + '<td>' + formatDate(row.updateTime || '') + '</td>'
@@ -420,6 +459,11 @@
             emptyHtml: '<td colspan="9" class="text-center"><i class="fa fa-file-text-o empty-icon"></i>'
                 + '<p class="empty-text">暂无校验结果</p><p class="empty-description">请先执行校验任务</p></td>',
             customPageSize: true
+        });
+
+        // 注册到全局定时刷新管理器（保持当前页与筛选条件）
+        PageRefreshManager.register(function () {
+            resultPagination.doSearch(buildSearchParams(), resultPagination.currentPage);
         });
     }
 
