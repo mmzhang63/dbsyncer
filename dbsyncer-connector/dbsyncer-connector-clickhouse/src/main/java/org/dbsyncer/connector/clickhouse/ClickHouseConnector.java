@@ -65,11 +65,6 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
     private static final String QUERY_COLUMNS = "SELECT name, type, numeric_precision, numeric_scale, is_in_primary_key, is_in_sorting_key "
             + "FROM system.columns WHERE database = ? AND table = ? ORDER BY position";
 
-    /**
-     * ClickHouse 批量 IN 删除的单批次最大行数，避免单次 IN 列表过大导致 mutation 性能下降。
-     */
-    private static final int DELETE_BATCH_SIZE = 1000;
-
     private final ClickHouseConfigValidator configValidator = new ClickHouseConfigValidator();
     private final ClickHouseSchemaResolver schemaResolver = new ClickHouseSchemaResolver();
 
@@ -101,6 +96,7 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
 
     @Override
     protected boolean useJdbcTransaction() {
+        // ClickHouse 不支持事务
         return false;
     }
 
