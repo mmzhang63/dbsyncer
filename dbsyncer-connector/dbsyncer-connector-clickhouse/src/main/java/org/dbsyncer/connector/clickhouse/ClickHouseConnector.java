@@ -65,6 +65,11 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
     private static final String QUERY_COLUMNS = "SELECT name, type, numeric_precision, numeric_scale, is_in_primary_key, is_in_sorting_key "
             + "FROM system.columns WHERE database = ? AND table = ? ORDER BY position";
 
+    /**
+     * ClickHouse 批量 IN 删除的单批次最大行数，避免单次 IN 列表过大导致 mutation 性能下降。
+     */
+    private static final int DELETE_BATCH_SIZE = 1000;
+
     private final ClickHouseConfigValidator configValidator = new ClickHouseConfigValidator();
     private final ClickHouseSchemaResolver schemaResolver = new ClickHouseSchemaResolver();
 
@@ -102,19 +107,22 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
     @Override
     public Map<String, String> getTargetCommand(CommandConfig commandConfig) {
         Map<String, String> map = super.getTargetCommand(commandConfig);
-        if (CollectionUtils.isEmpty(map)) {
-            return map;
-        }
-        // forceUpdate 时父类只生成 UPSERT；修改事件会转 INSERT，这里补齐 INSERT。
-        if (commandConfig.isForceUpdate() && StringUtil.isBlank(map.get(ConnectorConstant.OPERTION_INSERT))) {
+        // 改为动态生成语句：ALTER TABLE {table} DELETE WHERE pk=?
+        map.remove(ConnectorConstant.OPERTION_DELETE);
+        // 改为先删除，后插入
+        map.remove(ConnectorConstant.OPERTION_UPDATE);
+
+        // forceUpdate 时父类只生成 UPSERT；统一使用 INSERT
+        if (commandConfig.isForceUpdate()) {
             map.put(ConnectorConstant.OPERTION_INSERT, map.get(ConnectorConstant.OPERTION_UPSERT));
+            map.remove(ConnectorConstant.OPERTION_UPSERT);
         }
         return map;
     }
 
     @Override
     public Result writer(DatabaseConnectorInstance connectorInstance, PluginContext context) {
-        // ClickHouse 逐条 DELETE 会产生大量 mutation，统一改为按主键 IN 分批删除。
+        // ClickHouse 逐条 DELETE 会产生大量 mutation，统一改为 ALTER TABLE ... DELETE WHERE pk IN 分批删除。
         if (isDelete(context.getEvent())) {
             deleteByPrimaryKey(connectorInstance, context);
             Result result = new Result();
@@ -140,53 +148,50 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
         if (CollectionUtils.isEmpty(primaryKeyFields)) {
             throw new SdkException("按主键删除时主键字段不能为空.");
         }
-        String deleteSql = context.getCommand().get(ConnectorConstant.OPERTION_DELETE);
-        if (StringUtil.isBlank(deleteSql)) {
-            throw new SdkException("按主键删除时删除SQL不能为空.");
-        }
         try {
             List<String> primaryKeys = primaryKeyFields.stream().map(Field::getName).collect(Collectors.toList());
-            String sql = buildDeleteInSql(deleteSql, primaryKeys, targetRows.size());
-            List<Object[]> objects = buildDeleteInArgs(primaryKeyFields, targetRows);
-            connectorInstance.execute(databaseTemplate -> databaseTemplate.batchUpdate(sql, objects));
+            String tableName = context.getTargetTable().getName();
+            String sql = buildBatchDeleteSql(tableName, primaryKeys, targetRows.size());
+            Object[] args = buildDeleteInArgs(primaryKeyFields, targetRows);
+            connectorInstance.execute(databaseTemplate -> databaseTemplate.update(sql, args));
         } catch (Exception e) {
             throw new SdkException("按主键删除数据失败: " + e.getMessage());
         }
     }
 
     /**
-     * 将单行 DELETE WHERE pk=? 转为 DELETE WHERE pk IN (?,?,...)
+     * 动态生成批量删除语句：
+     * 单主键：ALTER TABLE `table` DELETE WHERE `pk` IN (?,?,...)
+     * 复合主键：ALTER TABLE `table` DELETE WHERE (`pk1`,`pk2`) IN ((?,?),(?,?),...)
      */
-    private String buildDeleteInSql(String deleteSql, List<String> primaryKeys, int batchSize) {
-        int whereIndex = deleteSql.toUpperCase(Locale.ROOT).lastIndexOf(" WHERE ");
-        if (whereIndex < 0) {
-            throw new SdkException("删除SQL缺少WHERE条件: " + deleteSql);
-        }
-        StringBuilder sql = new StringBuilder(deleteSql.substring(0, whereIndex)).append(" WHERE ");
+    private String buildBatchDeleteSql(String tableName, List<String> primaryKeys, int batchSize) {
+        StringBuilder sql = new StringBuilder("ALTER TABLE ");
+        sql.append(buildWithQuotation(tableName));
+        sql.append(" DELETE WHERE ");
         if (primaryKeys.size() == 1) {
-            sql.append(buildWithQuotation(primaryKeys.get(0))).append(" IN (");
+            sql.append(buildWithQuotation(primaryKeys.get(0)));
+            sql.append(" IN (");
             appendPlaceholders(sql, batchSize);
             sql.append(")");
-            return sql.toString();
-        }
-
-        sql.append("(");
-        for (int i = 0; i < primaryKeys.size(); i++) {
-            if (i > 0) {
-                sql.append(StringUtil.COMMA);
-            }
-            sql.append(buildWithQuotation(primaryKeys.get(i)));
-        }
-        sql.append(") IN (");
-        for (int i = 0; i < batchSize; i++) {
-            if (i > 0) {
-                sql.append(StringUtil.COMMA);
-            }
+        } else {
             sql.append("(");
-            appendPlaceholders(sql, primaryKeys.size());
+            for (int i = 0; i < primaryKeys.size(); i++) {
+                if (i > 0) {
+                    sql.append(StringUtil.COMMA);
+                }
+                sql.append(buildWithQuotation(primaryKeys.get(i)));
+            }
+            sql.append(") IN (");
+            for (int i = 0; i < batchSize; i++) {
+                if (i > 0) {
+                    sql.append(StringUtil.COMMA);
+                }
+                sql.append("(");
+                appendPlaceholders(sql, primaryKeys.size());
+                sql.append(")");
+            }
             sql.append(")");
         }
-        sql.append(")");
         return sql.toString();
     }
 
@@ -202,7 +207,7 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
     /**
      * 按分片实际行数动态组装 IN 参数，占位符数量与分片大小一致。
      */
-    private List<Object[]> buildDeleteInArgs(List<Field> primaryKeyFields, List<Map> chunk) {
+    private Object[] buildDeleteInArgs(List<Field> primaryKeyFields, List<Map> chunk) {
         Object[] args = new Object[chunk.size() * primaryKeyFields.size()];
         int index = 0;
         for (Map row : chunk) {
@@ -210,7 +215,7 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
                 args[index++] = row.get(field.getName());
             }
         }
-        return Collections.singletonList(args);
+        return args;
     }
 
     @Override
