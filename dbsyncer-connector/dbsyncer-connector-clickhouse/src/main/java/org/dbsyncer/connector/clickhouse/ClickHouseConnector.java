@@ -6,6 +6,7 @@ package org.dbsyncer.connector.clickhouse;
 import org.dbsyncer.common.model.Result;
 import org.dbsyncer.common.util.CollectionUtils;
 import org.dbsyncer.common.util.StringUtil;
+import org.dbsyncer.common.util.TaskSplitUtil;
 import org.dbsyncer.connector.clickhouse.cdc.ClickHouseListener;
 import org.dbsyncer.connector.clickhouse.schema.ClickHouseSchemaResolver;
 import org.dbsyncer.connector.clickhouse.validator.ClickHouseConfigValidator;
@@ -111,12 +112,6 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
         if (commandConfig.isForceUpdate() && StringUtil.isBlank(map.get(ConnectorConstant.OPERTION_INSERT))) {
             map.put(ConnectorConstant.OPERTION_INSERT, map.get(ConnectorConstant.OPERTION_UPSERT));
         }
-        // 预生成固定批大小的 DELETE IN，避免写入时动态拼 SQL。
-        String deleteSql = map.get(ConnectorConstant.OPERTION_DELETE);
-        if (StringUtil.isNotBlank(deleteSql)) {
-            List<String> primaryKeys = PrimaryKeyUtil.findTablePrimaryKeys(commandConfig.getTable());
-            map.put(ConnectorConstant.OPERTION_DELETE, buildDeleteInSql(deleteSql, primaryKeys, DELETE_IN_BATCH_SIZE));
-        }
         return map;
     }
 
@@ -152,22 +147,20 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
         if (StringUtil.isBlank(deleteSql)) {
             throw new SdkException("按主键删除时删除SQL不能为空.");
         }
+        List<String> primaryKeys = primaryKeyFields.stream().map(Field::getName).collect(Collectors.toList());
         try {
-            for (int offset = 0; offset < targetRows.size(); offset += DELETE_IN_BATCH_SIZE) {
-                int end = Math.min(offset + DELETE_IN_BATCH_SIZE, targetRows.size());
-                Object[] args = buildDeleteInArgs(primaryKeyFields, targetRows, offset, end);
-                connectorInstance.execute(databaseTemplate -> {
-                    databaseTemplate.update(deleteSql, args);
-                    return null;
-                });
-            }
+            TaskSplitUtil.split(targetRows, DELETE_IN_BATCH_SIZE, chunk -> {
+                String sql = buildDeleteInSql(deleteSql, primaryKeys, chunk.size());
+                List<Object[]> objects = buildDeleteInArgs(primaryKeyFields, chunk);
+                connectorInstance.execute(databaseTemplate -> databaseTemplate.batchUpdate(sql, objects));
+            });
         } catch (Exception e) {
             throw new SdkException("按主键删除数据失败: " + e.getMessage());
         }
     }
 
     /**
-     * 将单行 DELETE WHERE pk=? 转为固定批大小的 DELETE WHERE pk IN (?,?,...)
+     * 将单行 DELETE WHERE pk=? 转为 DELETE WHERE pk IN (?,?,...)
      */
     private String buildDeleteInSql(String deleteSql, List<String> primaryKeys, int batchSize) {
         int whereIndex = deleteSql.toUpperCase(Locale.ROOT).lastIndexOf(" WHERE ");
@@ -212,19 +205,17 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
     }
 
     /**
-     * 按固定批大小组装 IN 参数；不足一批时用最后一行主键填充，保证占位符数量与预生成 SQL 一致。
+     * 按分片实际行数动态组装 IN 参数，占位符数量与分片大小一致。
      */
-    private Object[] buildDeleteInArgs(List<Field> primaryKeyFields, List<Map> rows, int from, int to) {
-        Object[] args = new Object[DELETE_IN_BATCH_SIZE * primaryKeyFields.size()];
+    private List<Object[]> buildDeleteInArgs(List<Field> primaryKeyFields, List<Map> chunk) {
+        Object[] args = new Object[chunk.size() * primaryKeyFields.size()];
         int index = 0;
-        Map lastRow = rows.get(to - 1);
-        for (int i = 0; i < DELETE_IN_BATCH_SIZE; i++) {
-            Map row = (from + i) < to ? rows.get(from + i) : lastRow;
+        for (Map row : chunk) {
             for (Field field : primaryKeyFields) {
                 args[index++] = row.get(field.getName());
             }
         }
-        return args;
+        return Collections.singletonList(args);
     }
 
     @Override
