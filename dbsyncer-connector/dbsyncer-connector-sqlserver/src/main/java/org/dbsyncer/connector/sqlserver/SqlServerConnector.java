@@ -223,14 +223,14 @@ public final class SqlServerConnector extends AbstractDatabaseConnector {
 
         if (t.contains("VARBINARY")) {
             if (size > 8000) {
-                return "VARBINARY(MAX)";
+                return t + "(MAX)";
             }
         }
 
         if (t.contains("VARCHAR")) {
             // 长度 > 8000 → 必须用 MAX
             if (size > 8000) {
-                return "VARCHAR(MAX)";
+                return t + "(MAX)";
             }
         }
         return super.formatPhysicalType(sourceDefinition);

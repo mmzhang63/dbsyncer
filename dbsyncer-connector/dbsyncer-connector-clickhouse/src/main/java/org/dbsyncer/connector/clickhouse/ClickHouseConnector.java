@@ -128,9 +128,8 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
         // ClickHouse 不支持标准 UPSERT，且禁止更新主键/排序键列：覆盖写入与修改统一为先删后插。
         if (context.isForceUpdate() || isUpdate(context.getEvent())) {
             deleteByPrimaryKey(connectorInstance, context);
-            if (isUpdate(context.getEvent())) {
-                context.setEvent(ConnectorConstant.OPERTION_INSERT);
-            }
+            context.setEvent(ConnectorConstant.OPERTION_INSERT);
+            context.setForceUpdate(false);
         }
         return super.writer(connectorInstance, context);
     }
