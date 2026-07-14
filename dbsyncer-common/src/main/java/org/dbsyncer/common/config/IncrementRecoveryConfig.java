@@ -25,7 +25,7 @@ public class IncrementRecoveryConfig {
     /**
      * 每次重试间隔（毫秒）
      */
-    private long retryInterval = 3000L;
+    private long retryInterval = 5000L;
 
     public int getRetryTimes() {
         return retryTimes;
