@@ -8,8 +8,6 @@ import org.dbsyncer.common.model.Paging;
 import org.dbsyncer.common.util.StringUtil;
 import org.dbsyncer.parser.flush.impl.TableGroupBufferActuator;
 import org.dbsyncer.sdk.model.CommonTask;
-import org.dbsyncer.sdk.model.DatabaseMigrationDetailResult;
-import org.dbsyncer.sdk.model.DatabaseMigrationSyncTask;
 import org.dbsyncer.sdk.spi.DatabaseSyncDetailService;
 import org.dbsyncer.sdk.spi.ServiceFactory;
 import org.dbsyncer.sdk.spi.TableGroupBufferActuatorService;
@@ -113,22 +111,7 @@ public class ParserSupportConfiguration {
         if (service != null) {
             return service;
         }
-        return new DatabaseSyncDetailService() {
-            @Override
-            public void saveResult(DatabaseMigrationSyncTask task, DatabaseMigrationDetailResult detail) {
-
-            }
-
-            @Override
-            public Paging queryByTaskId(String taskId) {
-                return null;
-            }
-
-            @Override
-            public void deleteByTaskId(String taskId) {
-
-            }
-        };
+        return taskId -> null;
     }
 
     @Bean
