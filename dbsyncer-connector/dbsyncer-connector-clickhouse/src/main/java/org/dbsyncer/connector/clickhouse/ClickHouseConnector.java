@@ -378,7 +378,7 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
             return StringUtil.EMPTY;
         }
         return sourceInstance.execute(databaseTemplate -> {
-            List<java.util.Map<String, Object>> rows = databaseTemplate.queryForList("SHOW CREATE TABLE " + sourceTableName);
+            List<Map<String, Object>> rows = databaseTemplate.queryForList("SHOW CREATE TABLE " + sourceTableName);
             if (CollectionUtils.isEmpty(rows)) {
                 return StringUtil.EMPTY;
             }
