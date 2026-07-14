@@ -4,7 +4,6 @@
 package org.dbsyncer.sdk.spi;
 
 import org.dbsyncer.common.model.Paging;
-import org.dbsyncer.sdk.model.DatabaseMigrationDetailResult;
 import org.dbsyncer.sdk.model.DatabaseMigrationSyncTask;
 
 /**
@@ -17,25 +16,11 @@ import org.dbsyncer.sdk.model.DatabaseMigrationSyncTask;
 public interface DatabaseSyncDetailService {
 
     /**
-     * 保存单表单阶段终态结果（按 taskId + type + tableIndex 先删后插）。
-     *
-     * @param task   迁移任务
-     * @param detail 明细结果（含 type、tableIndex、库表名与计数）
-     */
-    void saveResult(DatabaseMigrationSyncTask task, DatabaseMigrationDetailResult detail);
-
-    /**
-     * 按任务 ID 查询迁移明细列表。
+     * 按任务 ID 查询迁移明细列表（按更新时间倒序）。
      *
      * @param taskId 任务 ID
      * @return 分页结果
      */
-    Paging queryByTaskId(String taskId);
+    Paging result(String taskId);
 
-    /**
-     * 删除任务下全部迁移明细（重跑前可选调用）。
-     *
-     * @param taskId 任务 ID
-     */
-    void deleteByTaskId(String taskId);
 }
