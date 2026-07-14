@@ -22,7 +22,6 @@ import org.dbsyncer.sdk.connector.ConnectorInstance;
 import org.dbsyncer.sdk.connector.DefaultConnectorServiceContext;
 import org.dbsyncer.sdk.constant.ConfigConstant;
 import org.dbsyncer.sdk.enums.FilterEnum;
-import org.dbsyncer.sdk.enums.SortEnum;
 import org.dbsyncer.sdk.enums.StorageEnum;
 import org.dbsyncer.sdk.enums.TableTypeEnum;
 import org.dbsyncer.sdk.filter.Query;
@@ -31,6 +30,7 @@ import org.dbsyncer.sdk.model.DatabaseMigrationProgressComputer;
 import org.dbsyncer.sdk.model.DatabaseMigrationSyncTask;
 import org.dbsyncer.sdk.model.Table;
 import org.dbsyncer.sdk.model.TableMapping;
+import org.dbsyncer.sdk.spi.DatabaseSyncDetailService;
 import org.dbsyncer.sdk.spi.TaskService;
 import org.dbsyncer.sdk.storage.StorageService;
 import org.dbsyncer.storage.impl.SnowflakeIdWorker;
@@ -80,6 +80,9 @@ public class DatabaseSyncServiceImpl implements DatabaseSyncService {
 
     @Resource
     private StorageService storageService;
+
+    @Resource
+    private DatabaseSyncDetailService databaseSyncDetailService;
 
     @Override
     public DatabaseSyncTaskVO get(String id) {
@@ -217,28 +220,7 @@ public class DatabaseSyncServiceImpl implements DatabaseSyncService {
 
     @Override
     public Paging searchResult(Map<String, String> params) {
-        String taskId = params.get("taskId");
-        Assert.hasText(taskId, "taskId 不能为空");
-        Query query = new Query(NumberUtil.toInt(params.get("pageNum"), 1), NumberUtil.toInt(params.get("pageSize"), 10));
-        query.setType(StorageEnum.DATABASE_SYNC_DETAIL);
-        query.addFilter(ConfigConstant.TASK_ID, taskId);
-
-        String detailType = StringUtil.trimToEmpty(params.get("detailType"));
-        if (StringUtil.isNotBlank(detailType)) {
-            query.addFilter(ConfigConstant.CONFIG_MODEL_TYPE, detailType);
-        }
-
-        String detailStatus = StringUtil.trimToEmpty(params.get("detailStatus"));
-        if ("success".equalsIgnoreCase(detailStatus)) {
-            query.addFilter(ConfigConstant.DATABASE_SYNC_DETAIL_FAIL_TOTAL, FilterEnum.EQUAL, 0);
-        } else if ("fail".equalsIgnoreCase(detailStatus)) {
-            query.addFilter(ConfigConstant.DATABASE_SYNC_DETAIL_FAIL_TOTAL, FilterEnum.GT, 0);
-        }
-
-        query.setSelectFlied(getMigrationDetailSelect());
-        query.addOrderBy(ConfigConstant.DATABASE_SYNC_DETAIL_FAIL_TOTAL, SortEnum.DESC);
-        query.addOrderBy(ConfigConstant.CONFIG_MODEL_UPDATE_TIME, SortEnum.DESC);
-        return storageService.query(query);
+        return databaseSyncDetailService.result(params);
     }
 
     @Override
@@ -481,25 +463,4 @@ public class DatabaseSyncServiceImpl implements DatabaseSyncService {
         return paging != null ? paging.getTotal() : 0;
     }
 
-    private static Set<String> getMigrationDetailSelect() {
-        Set<String> fields = new HashSet<>();
-        fields.add(ConfigConstant.CONFIG_MODEL_ID);
-        fields.add(ConfigConstant.CONFIG_MODEL_UPDATE_TIME);
-        fields.add(ConfigConstant.CONFIG_MODEL_CREATE_TIME);
-        fields.add(ConfigConstant.CONFIG_MODEL_TYPE);
-        fields.add(ConfigConstant.TASK_STATUS);
-        fields.add(ConfigConstant.TASK_ID);
-        fields.add(ConfigConstant.DATABASE_SYNC_DETAIL_TABLE_INDEX);
-        fields.add(ConfigConstant.DATABASE_SYNC_DETAIL_SOURCE_DATABASE);
-        fields.add(ConfigConstant.DATABASE_SYNC_DETAIL_SOURCE_SCHEMA);
-        fields.add(ConfigConstant.DATABASE_SYNC_DETAIL_TARGET_DATABASE);
-        fields.add(ConfigConstant.DATABASE_SYNC_DETAIL_TARGET_SCHEMA);
-        fields.add(ConfigConstant.DATABASE_SYNC_DETAIL_SOURCE_TABLE);
-        fields.add(ConfigConstant.DATABASE_SYNC_DETAIL_TARGET_TABLE);
-        fields.add(ConfigConstant.TASK_SOURCE_TOTAL);
-        fields.add(ConfigConstant.DATABASE_SYNC_DETAIL_SUCCESS_TOTAL);
-        fields.add(ConfigConstant.DATABASE_SYNC_DETAIL_FAIL_TOTAL);
-        fields.add(ConfigConstant.TASK_CONTENT);
-        return fields;
-    }
 }

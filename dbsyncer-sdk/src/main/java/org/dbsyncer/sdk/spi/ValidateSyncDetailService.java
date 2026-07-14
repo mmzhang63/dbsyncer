@@ -8,7 +8,7 @@ import org.dbsyncer.common.model.Paging;
 import java.util.Map;
 
 /**
- * 订正校验任务明细 SPI（落库 / 查询 / 清除，与 {@link TaskService} 任务生命周期解耦）。
+ * 订正校验任务明细 SPI
  *
  * @author wuji
  * @version 1.0.0
@@ -17,12 +17,12 @@ import java.util.Map;
 public interface ValidateSyncDetailService {
 
     /**
-     * 按任务 ID 查询校验明细列表（按更新时间倒序）。
+     * 查询校验明细列表（按更新时间倒序）。
      *
-     * @param taskId 任务 ID
+     * @param params 请求参数
      * @return 分页结果
      */
-    Paging result(String taskId);
+    Paging result(Map<String, String> params);
 
     /**
      * 对单条明细中尚未成功订正的差异尝试手动订正，并更新明细汇总列。

@@ -79,7 +79,7 @@ public class ValidateSyncServiceImpl implements ValidateSyncService {
     private TaskService<ValidateSyncTask> taskService;
 
     @Resource
-    private ValidateSyncDetailService validateSyncerDetailService;
+    private ValidateSyncDetailService validateSyncDetailService;
 
     @Resource
     private StorageService storageService;
@@ -439,7 +439,7 @@ public class ValidateSyncServiceImpl implements ValidateSyncService {
     @Override
     public Object manualReviseDetail(String detailId) {
         Assert.hasText(detailId, "id is required.");
-        return validateSyncerDetailService.manualRevise(detailId);
+        return validateSyncDetailService.manualRevise(detailId);
     }
 
     @Override

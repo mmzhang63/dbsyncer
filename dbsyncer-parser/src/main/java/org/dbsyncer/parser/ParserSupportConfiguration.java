@@ -111,7 +111,7 @@ public class ParserSupportConfiguration {
         if (service != null) {
             return service;
         }
-        return taskId -> null;
+        return params -> null;
     }
 
     @Bean
@@ -125,7 +125,7 @@ public class ParserSupportConfiguration {
         return new ValidateSyncDetailService() {
 
             @Override
-            public Paging result(String taskId) {
+            public Paging result(Map<String, String> params) {
                 return null;
             }
 
