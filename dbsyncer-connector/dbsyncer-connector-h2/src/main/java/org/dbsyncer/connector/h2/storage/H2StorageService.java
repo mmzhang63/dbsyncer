@@ -55,6 +55,11 @@ public class H2StorageService extends AbstractStorageService {
     private final String DROP_TABLE = "DROP TABLE %s";
     private final String TRUNCATE_TABLE = "TRUNCATE TABLE %s";
     private final String QUERY_TABLE_EXISTS = "SELECT COUNT(1) FROM INFORMATION_SCHEMA.TABLES WHERE UPPER(TABLE_NAME) = UPPER(?)";
+    private final String QUERY_COLUMN_EXISTS = "SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE UPPER(TABLE_NAME) = UPPER(?) AND UPPER(COLUMN_NAME) = UPPER(?)";
+    private final String QUERY_INDEX_EXISTS = "SELECT COUNT(1) FROM INFORMATION_SCHEMA.INDEXES WHERE UPPER(TABLE_NAME) = UPPER(?) AND UPPER(INDEX_NAME) = UPPER(?)";
+    private final String QUERY_INDEX_COLUMN_EXISTS = "SELECT COUNT(1) FROM INFORMATION_SCHEMA.INDEX_COLUMNS WHERE UPPER(TABLE_NAME) = UPPER(?) AND UPPER(INDEX_NAME) = UPPER(?) AND UPPER(COLUMN_NAME) = UPPER(?)";
+    private final String UK_DATABASE_SYNC_DETAIL = "UK_TASK_TYPE_TABLE";
+    private final String UK_DATABASE_SYNC_DETAIL_COLUMNS = "`TASK_ID`,`TYPE`,`SOURCE_DATABASE`,`SOURCE_SCHEMA`,`TARGET_DATABASE`,`TARGET_SCHEMA`,`TABLE_INDEX`";
 
     private final H2Connector connector = new H2Connector();
     private final Map<String, Executor> tables = new ConcurrentHashMap<>();
@@ -419,6 +424,9 @@ public class H2StorageService extends AbstractStorageService {
             executeSql(buildCreateTableSql(table, executor.getFields()));
         }
 
+        // 老版本升级：动态补齐新增字段/索引
+        upgradeTableColumns(executor.getType(), table);
+
         List<Field> fields = executor.getFields();
         // 主键列名须与 Field.name 一致（如 ID），不可用 label（id），否则 H2 引号标识符大小写敏感
         final SqlBuilderConfig config = new SqlBuilderConfig(connector, "", table, buildPrimaryKeys(fields), fields, "");
@@ -429,6 +437,66 @@ public class H2StorageService extends AbstractStorageService {
         String delete = SqlBuilderEnum.DELETE.getSqlBuilder().buildSql(config);
         executor.setTable(table).setQuery(query).setInsert(insert).setUpdate(update).setDelete(delete);
         return executor;
+    }
+
+    /**
+     * 老版本升级：按表类型动态补齐新增字段/索引（已存在则跳过）
+     *
+     * @param type  存储类型
+     * @param table 已带前缀的表名
+     */
+    private void upgradeTableColumns(String type, String table) {
+        if (StringUtil.isBlank(type)) {
+            return;
+        }
+        if (StorageEnum.DATABASE_SYNC_DETAIL.getType().equals(type)) {
+            addColumnIfNotExist(table, "STATUS", "INT DEFAULT 0 NOT NULL");
+            addColumnIfNotExist(table, "TARGET_SCHEMA", "VARCHAR(512) DEFAULT ''");
+            rebuildUniqueIndexIfNeeded(table, UK_DATABASE_SYNC_DETAIL, "TARGET_SCHEMA", UK_DATABASE_SYNC_DETAIL_COLUMNS);
+            return;
+        }
+        if (StorageEnum.VALIDATE_SYNC_DETAIL.getType().equals(type)) {
+            addColumnIfNotExist(table, "STATUS", "INT DEFAULT 0 NOT NULL");
+        }
+    }
+
+    /**
+     * 检查字段是否存在，不存在则动态新增
+     *
+     * @param table            已带前缀的表名
+     * @param column           字段名
+     * @param columnDefinition 字段类型定义（不含列名）
+     */
+    private void addColumnIfNotExist(String table, String column, String columnDefinition) {
+        if (columnExists(table, column)) {
+            return;
+        }
+        String alterSql = String.format("ALTER TABLE %s ADD COLUMN %s %s",
+                connector.buildWithQuotation(table),
+                connector.buildWithQuotation(column.toUpperCase()),
+                columnDefinition);
+        executeSql(alterSql);
+    }
+
+    /**
+     * 唯一索引未包含指定列时，删除旧索引并按新列定义重建
+     *
+     * @param table          已带前缀的表名
+     * @param indexName      唯一索引名
+     * @param requiredColumn 索引必须包含的列
+     * @param indexColumns   新唯一索引列定义
+     */
+    private void rebuildUniqueIndexIfNeeded(String table, String indexName, String requiredColumn, String indexColumns) {
+        if (indexColumnExists(table, indexName, requiredColumn)) {
+            return;
+        }
+        if (indexExists(table, indexName)) {
+            executeSql(String.format("DROP INDEX IF EXISTS %s", connector.buildWithQuotation(indexName)));
+        }
+        executeSql(String.format("CREATE UNIQUE INDEX %s ON %s (%s)",
+                connector.buildWithQuotation(indexName),
+                connector.buildWithQuotation(table),
+                indexColumns));
     }
 
     private List<String> buildPrimaryKeys(List<Field> fields) {
@@ -443,6 +511,24 @@ public class H2StorageService extends AbstractStorageService {
 
     private boolean tableExists(String tableName) {
         Long count = connectorInstance.execute(databaseTemplate -> databaseTemplate.queryForObject(QUERY_TABLE_EXISTS, new Object[] {tableName}, Long.class));
+        return count != null && count > 0;
+    }
+
+    private boolean columnExists(String tableName, String columnName) {
+        Long count = connectorInstance.execute(databaseTemplate ->
+                databaseTemplate.queryForObject(QUERY_COLUMN_EXISTS, new Object[] {tableName, columnName}, Long.class));
+        return count != null && count > 0;
+    }
+
+    private boolean indexExists(String tableName, String indexName) {
+        Long count = connectorInstance.execute(databaseTemplate ->
+                databaseTemplate.queryForObject(QUERY_INDEX_EXISTS, new Object[] {tableName, indexName}, Long.class));
+        return count != null && count > 0;
+    }
+
+    private boolean indexColumnExists(String tableName, String indexName, String columnName) {
+        Long count = connectorInstance.execute(databaseTemplate ->
+                databaseTemplate.queryForObject(QUERY_INDEX_COLUMN_EXISTS, new Object[] {tableName, indexName, columnName}, Long.class));
         return count != null && count > 0;
     }
 
