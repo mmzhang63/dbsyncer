@@ -51,6 +51,8 @@
     let tablePickerSearchTimer = null;
     /** add=新建库映射；append=向当前库映射追加表 */
     let tablePickerMode = 'add';
+    /** 程序化刷新连接器选项时忽略 onSelect，避免 setData 自动选中首项覆盖映射数据 */
+    let suppressConnectorSelect = false;
 
     function isReadOnly() {
         return !!page.readOnly;
@@ -135,8 +137,13 @@
         if (!select || typeof select.setData !== 'function') {
             return;
         }
-        select.setData(options);
-        select.setValues(nextId ? [nextId] : [], true);
+        suppressConnectorSelect = true;
+        try {
+            select.setData(options);
+            select.setValues(nextId ? [nextId] : [], true);
+        } finally {
+            suppressConnectorSelect = false;
+        }
     }
 
     /**
@@ -207,8 +214,13 @@
             return item.value === current && (!item.disabled || keepDisabledSelection);
         });
         const nextId = validCurrent ? current : '';
-        sourceConnectorSelect.setData(options);
-        sourceConnectorSelect.setValues(nextId ? [nextId] : [], true);
+        suppressConnectorSelect = true;
+        try {
+            sourceConnectorSelect.setData(options);
+            sourceConnectorSelect.setValues(nextId ? [nextId] : [], true);
+        } finally {
+            suppressConnectorSelect = false;
+        }
         if (!validCurrent && current) {
             state.source.connectorId = '';
             lastSourceConnectorId = '';
@@ -502,12 +514,33 @@
         return name + '(' + escapeHtml(type) + ')';
     }
 
+    function getConnectorDisplayName(connectorId) {
+        if (!connectorId) {
+            return '';
+        }
+        const found = allConnectorOptions.find(function (item) {
+            return item.value === connectorId;
+        });
+        if (found && found.label) {
+            return found.label.replace(/\([^)]*\)\s*$/, '').trim() || connectorId;
+        }
+        return getConnectorLabel('targetConnectorId', connectorId)
+            || getConnectorLabel('sourceConnectorId', connectorId)
+            || connectorId;
+    }
+
     function formatMappingCardSourceLineHtml(block) {
         return '源&nbsp;&nbsp;&nbsp;&nbsp;库:' + formatDbWithConnectorType(getMappingSourceDbName(block), getMappingSourceConnectorId(block));
     }
 
     function formatMappingCardTargetLineHtml(block) {
-        return '目标库: ' + formatDbWithConnectorType(getMappingTargetDbName(block), getMappingTargetConnectorId(block));
+        const connId = getMappingTargetConnectorId(block);
+        const connName = getConnectorDisplayName(connId);
+        const dbPart = formatDbWithConnectorType(getMappingTargetDbName(block), connId);
+        if (!connName || connName === '未选择') {
+            return '目标库: ' + dbPart;
+        }
+        return '目标库: ' + dbPart + ' · ' + escapeHtml(connName);
     }
 
     function getMappingSourceLineTitle(block) {
@@ -518,8 +551,14 @@
 
     function getMappingTargetLineTitle(block) {
         const db = getMappingTargetDbName(block) || '—';
-        const type = getConnectorTypeById(getMappingTargetConnectorId(block));
-        return type ? ('目标库: ' + db + '(' + type + ')') : ('目标库: ' + db);
+        const connId = getMappingTargetConnectorId(block);
+        const type = getConnectorTypeById(connId);
+        const connName = getConnectorDisplayName(connId);
+        let title = type ? ('目标库: ' + db + '(' + type + ')') : ('目标库: ' + db);
+        if (connName && connName !== '未选择') {
+            title += ' · ' + connName;
+        }
+        return title;
     }
 
     function formatMappingCardBodyHtml(block) {
@@ -1485,7 +1524,7 @@
             type: 'single',
             disabled: isReadOnly() || isAppendTablePickerMode(),
             onSelect: function (ids) {
-                if (isAppendTablePickerMode()) {
+                if (suppressConnectorSelect || isAppendTablePickerMode()) {
                     return;
                 }
                 state.target.connectorId = ids.length ? ids[0] : '';
@@ -2288,6 +2327,9 @@
             type: 'single',
             disabled: isReadOnly(),
             onSelect: function (ids) {
+                if (suppressConnectorSelect) {
+                    return;
+                }
                 onSourceConnectorChange(ids.length ? ids[0] : '');
                 updateSourceDatabaseFieldVisibility();
                 updateTargetSchemaVisibility();
@@ -2299,6 +2341,9 @@
             type: 'single',
             disabled: isReadOnly(),
             onSelect: function (ids) {
+                if (suppressConnectorSelect) {
+                    return;
+                }
                 const id = ids.length ? ids[0] : '';
                 state.target.connectorId = id;
                 const block = getActiveMappingBlock();

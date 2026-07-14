@@ -636,6 +636,7 @@ public class ValidateSyncServiceImpl implements ValidateSyncService {
         task.setBatchNum(NumberUtil.toInt(params.get("batchNum"), task.getBatchNum()));
         task.setThreadNum(NumberUtil.toInt(params.get("threadNum"), task.getThreadNum()));
         task.getTableSnapshots().clear();
+        task.setProcessed(CommonTaskStepStatusEnum.PENDING.getCode());
     }
 
     private void log(LogType log, ValidateSyncTask task, TableGroup tableGroup) {

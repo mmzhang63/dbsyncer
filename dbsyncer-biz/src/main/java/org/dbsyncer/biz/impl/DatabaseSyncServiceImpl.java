@@ -21,6 +21,7 @@ import org.dbsyncer.parser.util.ConnectorServiceContextUtil;
 import org.dbsyncer.sdk.connector.ConnectorInstance;
 import org.dbsyncer.sdk.connector.DefaultConnectorServiceContext;
 import org.dbsyncer.sdk.constant.ConfigConstant;
+import org.dbsyncer.sdk.enums.CommonTaskStepStatusEnum;
 import org.dbsyncer.sdk.enums.FilterEnum;
 import org.dbsyncer.sdk.enums.StorageEnum;
 import org.dbsyncer.sdk.enums.TableTypeEnum;
@@ -135,6 +136,7 @@ public class DatabaseSyncServiceImpl implements DatabaseSyncService {
         task.setDatabaseMappings(mappings);
         clearTableGroups(task.getId());
         task.getDatabaseSnapshots().clear();
+        task.setProcessed(CommonTaskStepStatusEnum.PENDING.getCode());
         return taskService.edit(task);
     }
 
