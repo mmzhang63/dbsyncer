@@ -168,7 +168,6 @@ public abstract class AbstractPluginContext extends AbstractBaseContext implemen
         return forceUpdate;
     }
 
-    @Override
     public void setForceUpdate(boolean forceUpdate) {
         this.forceUpdate = forceUpdate;
     }
