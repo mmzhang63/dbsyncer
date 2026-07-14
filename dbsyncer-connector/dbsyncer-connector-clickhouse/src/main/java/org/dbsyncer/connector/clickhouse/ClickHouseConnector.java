@@ -108,10 +108,9 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
         // 改为先删除，后插入
         map.remove(ConnectorConstant.OPERTION_UPDATE);
 
-        // forceUpdate 时父类只生成 UPSERT；统一使用 INSERT
+        // forceUpdate 不需要保存INSERT
         if (commandConfig.isForceUpdate()) {
-            map.put(ConnectorConstant.OPERTION_INSERT, map.get(ConnectorConstant.OPERTION_UPSERT));
-            map.remove(ConnectorConstant.OPERTION_UPSERT);
+            map.remove(ConnectorConstant.OPERTION_INSERT);
         }
         return map;
     }
@@ -128,8 +127,10 @@ public final class ClickHouseConnector extends AbstractDatabaseConnector {
         // ClickHouse 不支持标准 UPSERT，且禁止更新主键/排序键列：覆盖写入与修改统一为先删后插。
         if (context.isForceUpdate() || isUpdate(context.getEvent())) {
             deleteByPrimaryKey(connectorInstance, context);
-            context.setEvent(ConnectorConstant.OPERTION_INSERT);
-            context.setForceUpdate(false);
+            // 未开启覆盖 且 update
+            if (!context.isForceUpdate() && isUpdate(context.getEvent())) {
+                context.setEvent(ConnectorConstant.OPERTION_INSERT);
+            }
         }
         return super.writer(connectorInstance, context);
     }
