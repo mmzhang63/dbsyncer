@@ -84,11 +84,6 @@ public interface PluginContext extends BaseContext {
     boolean isForceUpdate();
 
     /**
-     * 设置是否覆盖更新
-     */
-    void setForceUpdate(boolean forceUpdate);
-
-    /**
      * 是否打印trace信息
      */
     boolean isEnablePrintTraceInfo();
